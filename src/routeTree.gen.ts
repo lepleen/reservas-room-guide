@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ReservationsNewRouteImport } from './routes/reservations.new'
+import { Route as ReservationsIdRouteImport } from './routes/reservations.$id'
 
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
@@ -22,31 +24,54 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReservationsNewRoute = ReservationsNewRouteImport.update({
+  id: '/reservations/new',
+  path: '/reservations/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReservationsIdRoute = ReservationsIdRouteImport.update({
+  id: '/reservations/$id',
+  path: '/reservations/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/reservations/$id': typeof ReservationsIdRoute
+  '/reservations/new': typeof ReservationsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/reservations/$id': typeof ReservationsIdRoute
+  '/reservations/new': typeof ReservationsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/reservations/$id': typeof ReservationsIdRoute
+  '/reservations/new': typeof ReservationsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard'
+  fullPaths: '/' | '/dashboard' | '/reservations/$id' | '/reservations/new'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard'
-  id: '__root__' | '/' | '/dashboard'
+  to: '/' | '/dashboard' | '/reservations/$id' | '/reservations/new'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/reservations/$id'
+    | '/reservations/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  ReservationsIdRoute: typeof ReservationsIdRoute
+  ReservationsNewRoute: typeof ReservationsNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +90,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reservations/new': {
+      id: '/reservations/new'
+      path: '/reservations/new'
+      fullPath: '/reservations/new'
+      preLoaderRoute: typeof ReservationsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reservations/$id': {
+      id: '/reservations/$id'
+      path: '/reservations/$id'
+      fullPath: '/reservations/$id'
+      preLoaderRoute: typeof ReservationsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  ReservationsIdRoute: ReservationsIdRoute,
+  ReservationsNewRoute: ReservationsNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
