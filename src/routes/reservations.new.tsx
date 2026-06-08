@@ -27,7 +27,10 @@ export const Route = createFileRoute("/reservations/new")({
   component: NewReservationPage,
 });
 
-type Form = Omit<Reservation, "id" | "createdAt" | "ownerEmail">;
+type Form = Omit<
+  Reservation,
+  "id" | "createdAt" | "ownerEmail" | "ownerName" | "status" | "adminNotes" | "reviewedAt"
+>;
 
 const empty: Form = {
   eventName: "",
