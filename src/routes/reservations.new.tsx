@@ -27,7 +27,10 @@ export const Route = createFileRoute("/reservations/new")({
   component: NewReservationPage,
 });
 
-type Form = Omit<Reservation, "id" | "createdAt" | "ownerEmail">;
+type Form = Omit<
+  Reservation,
+  "id" | "createdAt" | "ownerEmail" | "ownerName" | "status" | "adminNotes" | "reviewedAt"
+>;
 
 const empty: Form = {
   eventName: "",
@@ -66,7 +69,7 @@ function NewReservationPage() {
       return;
     }
     const r = addReservation(f);
-    toast.success("Reservation created");
+    toast.success("Request submitted for admin review");
     navigate({ to: "/reservations/$id", params: { id: r.id } });
   };
 

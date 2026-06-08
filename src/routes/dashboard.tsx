@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useStore, type Reservation } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { StatusBadge } from "@/components/StatusBadge";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -139,6 +140,7 @@ function ReservationRow({ r }: { r: Reservation }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="font-medium truncate">{r.eventName}</span>
+            <StatusBadge status={r.status} />
             {r.hasLiveBroadcast && (
               <span className="text-[10px] uppercase tracking-wider rounded bg-accent text-accent-foreground px-1.5 py-0.5">
                 Broadcast

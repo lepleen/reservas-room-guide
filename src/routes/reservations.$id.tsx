@@ -3,6 +3,7 @@ import { ArrowLeft, CalendarClock, MapPin, Users } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
+import { StatusBadge } from "@/components/StatusBadge";
 
 export const Route = createFileRoute("/reservations/$id")({
   component: ReservationDetailPage,
@@ -29,7 +30,20 @@ function ReservationDetailPage() {
       <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
         <ArrowLeft className="h-4 w-4" /> Back to dashboard
       </Link>
-      <PageHeader title={r.eventName} description={`Created ${new Date(r.createdAt).toLocaleDateString()}`} />
+      <PageHeader
+        title={r.eventName}
+        description={`Requested by ${r.ownerName || r.ownerEmail} · ${new Date(r.createdAt).toLocaleDateString()}`}
+        action={<StatusBadge status={r.status} />}
+      />
+
+      {r.adminNotes && (
+        <div className="mb-6 rounded-lg border border-border bg-card p-4">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">
+            Administrator note
+          </div>
+          <p className="mt-1 text-sm">{r.adminNotes}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <Info icon={CalendarClock} label="When">
