@@ -3,7 +3,7 @@ import { ArrowLeft, CalendarClock, MapPin, Users } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
-import { StatusBadge } from "@/routes/dashboard";
+import { StatusBadge } from "@/components/StatusBadge";
 
 export const Route = createFileRoute("/reservations/$id")({
   component: ReservationDetailPage,
