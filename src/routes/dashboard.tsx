@@ -1,20 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import {
-  ArrowUpRight,
-  CalendarClock,
-  CheckCircle2,
-  Clock,
-  Plus,
-  Search,
-  Users,
-  XCircle,
-} from "lucide-react";
+import { ArrowUpRight, CalendarClock, Plus, Search, Users } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useStore, type Reservation } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { StatusBadge } from "@/components/StatusBadge";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
