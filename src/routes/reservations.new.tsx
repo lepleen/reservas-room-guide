@@ -69,7 +69,7 @@ function NewReservationPage() {
       return;
     }
     const r = addReservation(f);
-    toast.success("Reservation created");
+    toast.success("Request submitted for admin review");
     navigate({ to: "/reservations/$id", params: { id: r.id } });
   };
 
