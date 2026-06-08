@@ -11,6 +11,7 @@ import {
 export type Reservation = {
   id: string;
   ownerEmail: string;
+  ownerName?: string;
   eventName: string;
   room: string;
   date: string; // ISO yyyy-mm-dd
@@ -32,25 +33,39 @@ export type Reservation = {
   schedule: { time: string; action: string }[];
   notes?: string;
   createdAt: string;
+  status: "pending" | "approved" | "rejected";
+  adminNotes?: string;
+  reviewedAt?: string;
 };
 
 type User = { email: string; name: string };
+export type Role = "user" | "admin";
 
 type Ctx = {
   user: User | null;
   login: (email: string, name?: string) => void;
   logout: () => void;
+  role: Role;
+  setRole: (r: Role) => void;
   reservations: Reservation[];
-  addReservation: (r: Omit<Reservation, "id" | "createdAt" | "ownerEmail">) => Reservation;
+  addReservation: (
+    r: Omit<Reservation, "id" | "createdAt" | "ownerEmail" | "status">,
+  ) => Reservation;
   getReservation: (id: string) => Reservation | undefined;
+  decideReservation: (
+    id: string,
+    decision: "approved" | "rejected",
+    notes?: string,
+  ) => void;
 };
 
 const StoreContext = createContext<Ctx | null>(null);
 
 const USER_KEY = "roomr.user";
 const RES_KEY = "roomr.reservations";
+const ROLE_KEY = "roomr.role";
 
-function seed(email: string): Reservation[] {
+function seed(email: string, name?: string): Reservation[] {
   const today = new Date();
   const iso = (d: Date) => d.toISOString().slice(0, 10);
   const plus = (n: number) => {
@@ -62,6 +77,7 @@ function seed(email: string): Reservation[] {
     {
       id: "seed-1",
       ownerEmail: email,
+      ownerName: name,
       eventName: "Quarterly Product Review",
       room: "Atlas Hall",
       date: plus(5),
@@ -87,10 +103,12 @@ function seed(email: string): Reservation[] {
       ],
       notes: "VIP seating in front two rows.",
       createdAt: new Date().toISOString(),
+      status: "pending",
     },
     {
       id: "seed-2",
       ownerEmail: email,
+      ownerName: name,
       eventName: "Design Critique",
       room: "Studio B",
       date: plus(-7),
@@ -106,6 +124,9 @@ function seed(email: string): Reservation[] {
       registrationRequired: false,
       schedule: [{ time: "14:00", action: "Walk through prototypes" }],
       createdAt: new Date().toISOString(),
+      status: "approved",
+      adminNotes: "Approved — studio B confirmed.",
+      reviewedAt: new Date().toISOString(),
     },
   ];
 }
@@ -113,13 +134,22 @@ function seed(email: string): Reservation[] {
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [role, setRoleState] = useState<Role>("user");
 
   useEffect(() => {
     try {
       const u = localStorage.getItem(USER_KEY);
       if (u) setUser(JSON.parse(u));
       const r = localStorage.getItem(RES_KEY);
-      if (r) setReservations(JSON.parse(r));
+      if (r) {
+        setReservations(JSON.parse(r));
+      } else {
+        const s = seed("demo@roomr.app", "Demo user");
+        setReservations(s);
+        localStorage.setItem(RES_KEY, JSON.stringify(s));
+      }
+      const ro = localStorage.getItem(ROLE_KEY);
+      if (ro === "admin" || ro === "user") setRoleState(ro);
     } catch {}
   }, []);
 
@@ -128,17 +158,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(RES_KEY, JSON.stringify(next));
   };
 
+  const setRole = useCallback((r: Role) => {
+    setRoleState(r);
+    localStorage.setItem(ROLE_KEY, r);
+  }, []);
+
   const login = useCallback(
     (email: string, name?: string) => {
       const u = { email, name: name ?? email.split("@")[0] };
       setUser(u);
       localStorage.setItem(USER_KEY, JSON.stringify(u));
-      if (reservations.length === 0) {
-        const s = seed(email);
-        persist(s);
-      }
     },
-    [reservations.length],
+    [],
   );
 
   const logout = useCallback(() => {
@@ -151,10 +182,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       ...r,
       id: crypto.randomUUID(),
       ownerEmail: user?.email ?? "guest@local",
+      ownerName: user?.name,
       createdAt: new Date().toISOString(),
+      status: "pending",
     };
     persist([full, ...reservations]);
     return full;
+  };
+
+  const decideReservation: Ctx["decideReservation"] = (id, decision, notes) => {
+    const next = reservations.map((r) =>
+      r.id === id
+        ? { ...r, status: decision, adminNotes: notes, reviewedAt: new Date().toISOString() }
+        : r,
+    );
+    persist(next);
   };
 
   const value = useMemo<Ctx>(
@@ -162,12 +204,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       user,
       login,
       logout,
+      role,
+      setRole,
       reservations,
       addReservation,
       getReservation: (id) => reservations.find((r) => r.id === id),
+      decideReservation,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, reservations],
+    [user, reservations, role],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
