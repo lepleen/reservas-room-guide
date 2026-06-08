@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SigninRouteImport } from './routes/signin'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ReservationsNewRouteImport } from './routes/reservations.new'
 import { Route as ReservationsIdRouteImport } from './routes/reservations.$id'
 
+const SigninRoute = SigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -38,12 +44,14 @@ const ReservationsIdRoute = ReservationsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/signin': typeof SigninRoute
   '/reservations/$id': typeof ReservationsIdRoute
   '/reservations/new': typeof ReservationsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/signin': typeof SigninRoute
   '/reservations/$id': typeof ReservationsIdRoute
   '/reservations/new': typeof ReservationsNewRoute
 }
@@ -51,18 +59,25 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
+  '/signin': typeof SigninRoute
   '/reservations/$id': typeof ReservationsIdRoute
   '/reservations/new': typeof ReservationsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/reservations/$id' | '/reservations/new'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/signin'
+    | '/reservations/$id'
+    | '/reservations/new'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/reservations/$id' | '/reservations/new'
+  to: '/' | '/dashboard' | '/signin' | '/reservations/$id' | '/reservations/new'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
+    | '/signin'
     | '/reservations/$id'
     | '/reservations/new'
   fileRoutesById: FileRoutesById
@@ -70,12 +85,20 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
+  SigninRoute: typeof SigninRoute
   ReservationsIdRoute: typeof ReservationsIdRoute
   ReservationsNewRoute: typeof ReservationsNewRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/signin': {
+      id: '/signin'
+      path: '/signin'
+      fullPath: '/signin'
+      preLoaderRoute: typeof SigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -110,9 +133,20 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
+  SigninRoute: SigninRoute,
   ReservationsIdRoute: ReservationsIdRoute,
   ReservationsNewRoute: ReservationsNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
