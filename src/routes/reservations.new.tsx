@@ -29,7 +29,7 @@ export const Route = createFileRoute("/reservations/new")({
 
 type Form = Omit<
   Reservation,
-  "id" | "createdAt" | "ownerEmail" | "ownerName" | "status" | "adminNotes" | "reviewedAt"
+  "id" | "createdAt" | "ownerEmail" | "ownerName" | "status" | "adminNotes" | "reviewedAt" | "kind"
 >;
 
 const empty: Form = {
