@@ -21,13 +21,18 @@ export const Route = createFileRoute("/dashboard")({
 type Filter = "upcoming" | "past" | "all";
 
 function DashboardPage() {
-  const { reservations } = useStore();
+  const { reservations, role } = useStore();
   const [filter, setFilter] = useState<Filter>("upcoming");
   const [q, setQ] = useState("");
 
   const todayISO = new Date().toISOString().slice(0, 10);
+  // User dashboard only shows user-kind requests; admins see all here.
+  const scoped = useMemo(
+    () => (role === "admin" ? reservations : reservations.filter((r) => r.kind === "user")),
+    [reservations, role],
+  );
   const filtered = useMemo(() => {
-    const byTime = reservations.filter((r) => {
+    const byTime = scoped.filter((r) => {
       if (filter === "upcoming") return r.date >= todayISO;
       if (filter === "past") return r.date < todayISO;
       return true;
@@ -40,10 +45,10 @@ function DashboardPage() {
             r.room.toLowerCase().includes(term),
         )
       : byTime;
-  }, [reservations, filter, q, todayISO]);
+  }, [scoped, filter, q, todayISO]);
 
-  const upcomingCount = reservations.filter((r) => r.date >= todayISO).length;
-  const totalAttendees = reservations
+  const upcomingCount = scoped.filter((r) => r.date >= todayISO).length;
+  const totalAttendees = scoped
     .filter((r) => r.date >= todayISO)
     .reduce((s, r) => s + r.attendees, 0);
 
@@ -64,7 +69,7 @@ function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <Stat label="Upcoming" value={upcomingCount.toString()} icon={CalendarClock} />
         <Stat label="Expected attendees" value={totalAttendees.toLocaleString()} icon={Users} />
-        <Stat label="Total events" value={reservations.length.toString()} icon={ArrowUpRight} />
+        <Stat label="Total events" value={scoped.length.toString()} icon={ArrowUpRight} />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
