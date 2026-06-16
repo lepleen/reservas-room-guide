@@ -8,6 +8,25 @@ import {
   type ReactNode,
 } from "react";
 
+export type Room = { name: string; capacity: number };
+
+export const ROOMS: Room[] = [
+  { name: "Atlas Hall", capacity: 200 },
+  { name: "Nova Auditorium", capacity: 350 },
+  { name: "Lyra Classroom", capacity: 50 },
+  { name: "Orion Boardroom", capacity: 12 },
+  { name: "Studio A", capacity: 30 },
+  { name: "Studio B", capacity: 20 },
+];
+
+export function getRoom(name: string): Room | undefined {
+  return ROOMS.find((r) => r.name === name);
+}
+
+function timeOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string) {
+  return aStart < bEnd && bStart < aEnd;
+}
+
 export type Reservation = {
   id: string;
   ownerEmail: string;
@@ -38,6 +57,21 @@ export type Reservation = {
   adminNotes?: string;
   reviewedAt?: string;
 };
+
+export function findConflicts(
+  reservations: Reservation[],
+  args: { date: string; room: string; startTime: string; endTime: string; excludeId?: string },
+): Reservation[] {
+  if (!args.date || !args.room || !args.startTime || !args.endTime) return [];
+  return reservations.filter(
+    (r) =>
+      r.id !== args.excludeId &&
+      r.room === args.room &&
+      r.date === args.date &&
+      r.status !== "rejected" &&
+      timeOverlap(args.startTime, args.endTime, r.startTime, r.endTime),
+  );
+}
 
 type User = { email: string; name: string };
 export type Role = "user" | "admin" | "internal";
