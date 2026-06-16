@@ -187,7 +187,8 @@ function AdminPage() {
                 )}
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
 
