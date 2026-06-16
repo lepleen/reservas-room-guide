@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ReservationsNewRouteImport } from './routes/reservations.new'
 import { Route as ReservationsIdRouteImport } from './routes/reservations.$id'
 import { Route as InternalDashboardRouteImport } from './routes/internal.dashboard'
+import { Route as InternalReservationsNewRouteImport } from './routes/internal.reservations.new'
 
 const SigninRoute = SigninRouteImport.update({
   id: '/signin',
@@ -52,6 +53,11 @@ const InternalDashboardRoute = InternalDashboardRouteImport.update({
   path: '/internal/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InternalReservationsNewRoute = InternalReservationsNewRouteImport.update({
+  id: '/internal/reservations/new',
+  path: '/internal/reservations/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/internal/dashboard': typeof InternalDashboardRoute
   '/reservations/$id': typeof ReservationsIdRoute
   '/reservations/new': typeof ReservationsNewRoute
+  '/internal/reservations/new': typeof InternalReservationsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/internal/dashboard': typeof InternalDashboardRoute
   '/reservations/$id': typeof ReservationsIdRoute
   '/reservations/new': typeof ReservationsNewRoute
+  '/internal/reservations/new': typeof InternalReservationsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/internal/dashboard': typeof InternalDashboardRoute
   '/reservations/$id': typeof ReservationsIdRoute
   '/reservations/new': typeof ReservationsNewRoute
+  '/internal/reservations/new': typeof InternalReservationsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/internal/dashboard'
     | '/reservations/$id'
     | '/reservations/new'
+    | '/internal/reservations/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/internal/dashboard'
     | '/reservations/$id'
     | '/reservations/new'
+    | '/internal/reservations/new'
   id:
     | '__root__'
     | '/'
@@ -109,6 +120,7 @@ export interface FileRouteTypes {
     | '/internal/dashboard'
     | '/reservations/$id'
     | '/reservations/new'
+    | '/internal/reservations/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,6 +131,7 @@ export interface RootRouteChildren {
   InternalDashboardRoute: typeof InternalDashboardRoute
   ReservationsIdRoute: typeof ReservationsIdRoute
   ReservationsNewRoute: typeof ReservationsNewRoute
+  InternalReservationsNewRoute: typeof InternalReservationsNewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -172,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/internal/reservations/new': {
+      id: '/internal/reservations/new'
+      path: '/internal/reservations/new'
+      fullPath: '/internal/reservations/new'
+      preLoaderRoute: typeof InternalReservationsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -183,6 +203,7 @@ const rootRouteChildren: RootRouteChildren = {
   InternalDashboardRoute: InternalDashboardRoute,
   ReservationsIdRoute: ReservationsIdRoute,
   ReservationsNewRoute: ReservationsNewRoute,
+  InternalReservationsNewRoute: InternalReservationsNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
