@@ -168,7 +168,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (u) setUser(JSON.parse(u));
       const r = localStorage.getItem(RES_KEY);
       if (r) {
-        setReservations(JSON.parse(r));
+        const parsed = JSON.parse(r) as Reservation[];
+        // Migrate older reservations that pre-date the `kind` field.
+        const migrated = parsed.map((x) => ({ ...x, kind: x.kind ?? "user" }));
+        setReservations(migrated);
       } else {
         const s = seed("demo@roomr.app", "Demo user");
         setReservations(s);
