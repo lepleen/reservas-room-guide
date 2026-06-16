@@ -17,14 +17,14 @@ import {
 import { useStore, type Reservation } from "@/lib/store";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/reservations/new")({
+export const Route = createFileRoute("/internal/reservations/new")({
   head: () => ({
     meta: [
-      { title: "New reservation — Roomr" },
-      { name: "description", content: "Plan a new room reservation with full event details." },
+      { title: "New internal reservation — Roomr" },
+      { name: "description", content: "Submit an internal-team room reservation request." },
     ],
   }),
-  component: NewReservationPage,
+  component: NewInternalReservationPage,
 });
 
 type Form = Omit<
@@ -39,7 +39,7 @@ const empty: Form = {
   startTime: "09:00",
   endTime: "10:00",
   attendees: 10,
-  setupStyle: "theater",
+  setupStyle: "boardroom",
   catering: false,
   cateringNotes: "",
   speakers: [],
@@ -55,7 +55,7 @@ const empty: Form = {
   notes: "",
 };
 
-function NewReservationPage() {
+function NewInternalReservationPage() {
   const { addReservation } = useStore();
   const navigate = useNavigate();
   const [f, setF] = useState<Form>(empty);
@@ -68,25 +68,25 @@ function NewReservationPage() {
       toast.error("Event name, room, and date are required.");
       return;
     }
-    const r = addReservation(f);
-    toast.success("Request submitted for admin review");
-    navigate({ to: "/reservations/$id", params: { id: r.id } });
+    const r = addReservation(f, "internal");
+    toast.success("Internal request submitted for admin review");
+    navigate({ to: "/internal/reservations/$id", params: { id: r.id } });
   };
 
   return (
     <AppShell>
       <PageHeader
-        title="New reservation"
-        description="Capture everything needed for a smooth event."
+        title="New internal reservation"
+        description="Submit a room request on behalf of the internal team."
       />
 
       <form onSubmit={submit} className="space-y-10 max-w-3xl">
         <Section title="Basics" description="The essentials about your event.">
           <Field label="Event name">
-            <Input value={f.eventName} onChange={(e) => set("eventName", e.target.value)} placeholder="All-hands Q3" />
+            <Input value={f.eventName} onChange={(e) => set("eventName", e.target.value)} placeholder="Internal training session" />
           </Field>
           <Field label="Room">
-            <Input value={f.room} onChange={(e) => set("room", e.target.value)} placeholder="Atlas Hall" />
+            <Input value={f.room} onChange={(e) => set("room", e.target.value)} placeholder="Studio A" />
           </Field>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Date">
@@ -141,7 +141,7 @@ function NewReservationPage() {
           )}
         </Section>
 
-        <Section title="Speakers" description="Add people presenting at the event.">
+        <Section title="Speakers" description="Internal presenters or facilitators.">
           <Toggle
             label="In-person speakers"
             checked={f.hasInPersonSpeakers}
@@ -202,7 +202,7 @@ function NewReservationPage() {
               <Input
                 value={f.broadcastPlatform}
                 onChange={(e) => set("broadcastPlatform", e.target.value)}
-                placeholder="Zoom Webinar, YouTube Live, …"
+                placeholder="Internal stream, Teams, …"
               />
             </Field>
           )}
@@ -301,15 +301,15 @@ function NewReservationPage() {
             rows={4}
             value={f.notes}
             onChange={(e) => set("notes", e.target.value)}
-            placeholder="Special requirements, VIPs, access, …"
+            placeholder="Special requirements, restricted access, …"
           />
         </Section>
 
         <div className="flex justify-end gap-3 pt-2 border-t border-border">
-          <Button type="button" variant="ghost" onClick={() => navigate({ to: "/dashboard" })}>
+          <Button type="button" variant="ghost" onClick={() => navigate({ to: "/internal/dashboard" })}>
             Cancel
           </Button>
-          <Button type="submit">Create reservation</Button>
+          <Button type="submit">Submit internal request</Button>
         </div>
       </form>
     </AppShell>

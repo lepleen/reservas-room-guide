@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, LayoutDashboard, Plus, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { ArrowRight, Building2, LayoutDashboard, Plus, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
 
@@ -46,7 +46,7 @@ function LandingPage() {
         </p>
       </section>
 
-      <section className="mx-auto max-w-4xl px-6 pb-24 grid sm:grid-cols-2 gap-4">
+      <section className="mx-auto max-w-5xl px-6 pb-24 grid sm:grid-cols-3 gap-4">
         <RoleCard
           icon={UserRound}
           title="I'm a user"
@@ -54,6 +54,14 @@ function LandingPage() {
           cta="Continue as user"
           to="/dashboard"
           onClick={() => setRole("user")}
+        />
+        <RoleCard
+          icon={Building2}
+          title="I'm an internal user"
+          description="Submit room requests on behalf of internal teams in a fully separated workspace."
+          cta="Open internal panel"
+          to="/internal/dashboard"
+          onClick={() => setRole("internal")}
         />
         <RoleCard
           icon={ShieldCheck}
@@ -65,9 +73,10 @@ function LandingPage() {
         />
       </section>
 
-      <section className="mx-auto max-w-4xl px-6 pb-24 grid sm:grid-cols-3 gap-3">
+      <section className="mx-auto max-w-5xl px-6 pb-24 grid sm:grid-cols-4 gap-3">
         <QuickLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
         <QuickLink to="/reservations/new" icon={Plus} label="New reservation" />
+        <QuickLink to="/internal/dashboard" icon={Building2} label="Internal panel" />
         <QuickLink to="/admin" icon={ShieldCheck} label="Admin review" />
       </section>
     </div>

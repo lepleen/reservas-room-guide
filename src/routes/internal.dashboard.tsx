@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowUpRight, CalendarClock, Plus, Search, Users } from "lucide-react";
+import { ArrowUpRight, CalendarClock, Plus, Search, Users, Building2 } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,28 +8,27 @@ import { useStore, type Reservation } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/StatusBadge";
 
-export const Route = createFileRoute("/dashboard")({
+export const Route = createFileRoute("/internal/dashboard")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Roomr" },
-      { name: "description", content: "Your upcoming and past room reservations." },
+      { title: "Internal dashboard — Roomr" },
+      { name: "description", content: "Internal team room reservations." },
     ],
   }),
-  component: DashboardPage,
+  component: InternalDashboardPage,
 });
 
 type Filter = "upcoming" | "past" | "all";
 
-function DashboardPage() {
-  const { reservations, role } = useStore();
+function InternalDashboardPage() {
+  const { reservations } = useStore();
   const [filter, setFilter] = useState<Filter>("upcoming");
   const [q, setQ] = useState("");
 
   const todayISO = new Date().toISOString().slice(0, 10);
-  // User dashboard only shows user-kind requests; admins see all here.
   const scoped = useMemo(
-    () => (role === "admin" ? reservations : reservations.filter((r) => r.kind === "user")),
-    [reservations, role],
+    () => reservations.filter((r) => r.kind === "internal"),
+    [reservations],
   );
   const filtered = useMemo(() => {
     const byTime = scoped.filter((r) => {
@@ -55,12 +54,12 @@ function DashboardPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Your events"
-        description="A calm overview of everything you have planned."
+        title="Internal events"
+        description="Reservations submitted by the internal team."
         action={
           <Button asChild>
-            <Link to="/reservations/new">
-              <Plus className="h-4 w-4" /> New reservation
+            <Link to="/internal/reservations/new">
+              <Plus className="h-4 w-4" /> New internal request
             </Link>
           </Button>
         }
@@ -69,7 +68,7 @@ function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <Stat label="Upcoming" value={upcomingCount.toString()} icon={CalendarClock} />
         <Stat label="Expected attendees" value={totalAttendees.toLocaleString()} icon={Users} />
-        <Stat label="Total events" value={scoped.length.toString()} icon={ArrowUpRight} />
+        <Stat label="Total internal events" value={scoped.length.toString()} icon={Building2} />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -101,7 +100,15 @@ function DashboardPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState />
+        <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center">
+          <h3 className="text-base font-medium">No internal events yet</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Submit your first internal reservation.
+          </p>
+          <Button asChild className="mt-4">
+            <Link to="/internal/reservations/new"><Plus className="h-4 w-4" /> New internal request</Link>
+          </Button>
+        </div>
       ) : (
         <ul className="space-y-3">
           {filtered.map((r) => (
@@ -137,7 +144,7 @@ function ReservationRow({ r }: { r: Reservation }) {
   return (
     <li>
       <Link
-        to="/reservations/$id"
+        to="/internal/reservations/$id"
         params={{ id: r.id }}
         className="group flex items-center gap-4 rounded-lg border border-border bg-card px-5 py-4 hover:border-primary/40 transition-colors"
       >
@@ -146,11 +153,9 @@ function ReservationRow({ r }: { r: Reservation }) {
           <div className="flex items-center gap-2">
             <span className="font-medium truncate">{r.eventName}</span>
             <StatusBadge status={r.status} />
-            {r.hasLiveBroadcast && (
-              <span className="text-[10px] uppercase tracking-wider rounded bg-accent text-accent-foreground px-1.5 py-0.5">
-                Broadcast
-              </span>
-            )}
+            <span className="text-[10px] uppercase tracking-wider rounded bg-accent text-accent-foreground px-1.5 py-0.5">
+              Internal
+            </span>
           </div>
           <div className="mt-1 text-sm text-muted-foreground truncate">
             {r.room} · {r.startTime}–{r.endTime} · {r.attendees} attendees
@@ -170,20 +175,6 @@ function DateBadge({ date }: { date: string }) {
     <div className="flex flex-col items-center justify-center w-12 h-12 rounded-md bg-secondary text-foreground">
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{month}</span>
       <span className="text-base font-semibold leading-none">{day}</span>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center">
-      <h3 className="text-base font-medium">No events here yet</h3>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Start by planning your first reservation.
-      </p>
-      <Button asChild className="mt-4">
-        <Link to="/reservations/new"><Plus className="h-4 w-4" /> New reservation</Link>
-      </Button>
     </div>
   );
 }

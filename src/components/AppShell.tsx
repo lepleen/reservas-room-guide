@@ -1,5 +1,6 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
+  Building2,
   CalendarDays,
   LayoutDashboard,
   LogOut,
@@ -23,10 +24,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           { to: "/admin", label: "Review requests", icon: ShieldCheck },
           { to: "/dashboard", label: "All events", icon: LayoutDashboard },
         ]
-      : [
-          { to: "/dashboard", label: "My events", icon: LayoutDashboard },
-          { to: "/reservations/new", label: "New request", icon: Plus },
-        ];
+      : role === "internal"
+        ? [
+            { to: "/internal/dashboard", label: "Internal events", icon: Building2 },
+            { to: "/internal/reservations/new", label: "New internal request", icon: Plus },
+          ]
+        : [
+            { to: "/dashboard", label: "My events", icon: LayoutDashboard },
+            { to: "/reservations/new", label: "New request", icon: Plus },
+          ];
+
+  const panelLabel =
+    role === "admin" ? "Admin panel" : role === "internal" ? "Internal panel" : "User panel";
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -37,22 +46,29 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div>
             <div className="text-sm font-semibold tracking-tight">Roomr</div>
-            <div className="text-xs text-muted-foreground">Event reservations</div>
+            <div className="text-xs text-muted-foreground">{panelLabel}</div>
           </div>
         </Link>
 
         <div className="mb-6 rounded-md border border-sidebar-border p-1 flex">
-          {(["user", "admin"] as const).map((r) => {
-            const Icon = r === "admin" ? ShieldCheck : UserRound;
+          {(["user", "internal", "admin"] as const).map((r) => {
+            const Icon =
+              r === "admin" ? ShieldCheck : r === "internal" ? Building2 : UserRound;
+            const dest =
+              r === "admin"
+                ? "/admin"
+                : r === "internal"
+                  ? "/internal/dashboard"
+                  : "/dashboard";
             return (
               <button
                 key={r}
                 onClick={() => {
                   setRole(r);
-                  navigate({ to: r === "admin" ? "/admin" : "/dashboard" });
+                  navigate({ to: dest });
                 }}
                 className={cn(
-                  "flex-1 inline-flex items-center justify-center gap-1.5 rounded px-2 py-1.5 text-xs capitalize transition-colors",
+                  "flex-1 inline-flex items-center justify-center gap-1 rounded px-1.5 py-1.5 text-[11px] capitalize transition-colors",
                   role === r
                     ? "bg-secondary text-foreground font-medium"
                     : "text-muted-foreground hover:text-foreground",
@@ -126,19 +142,26 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <span className="text-sm font-semibold">Roomr</span>
         </Link>
-        {role === "user" ? (
+        {role === "admin" ? (
           <Link
-            to="/reservations/new"
+            to="/admin"
+            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+          >
+            <ShieldCheck className="h-3.5 w-3.5" /> Review
+          </Link>
+        ) : role === "internal" ? (
+          <Link
+            to="/internal/reservations/new"
             className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
           >
             <Plus className="h-3.5 w-3.5" /> New
           </Link>
         ) : (
           <Link
-            to="/admin"
+            to="/reservations/new"
             className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
           >
-            <ShieldCheck className="h-3.5 w-3.5" /> Review
+            <Plus className="h-3.5 w-3.5" /> New
           </Link>
         )}
       </div>

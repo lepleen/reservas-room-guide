@@ -112,13 +112,23 @@ function AdminPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Link
-                    to="/reservations/$id"
+                    to={r.kind === "internal" ? "/internal/reservations/$id" : "/reservations/$id"}
                     params={{ id: r.id }}
                     className="font-medium hover:underline truncate"
                   >
                     {r.eventName}
                   </Link>
                   <StatusBadge status={r.status} />
+                  <span
+                    className={cn(
+                      "text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5",
+                      r.kind === "internal"
+                        ? "bg-accent text-accent-foreground"
+                        : "bg-secondary text-foreground",
+                    )}
+                  >
+                    {r.kind === "internal" ? "Internal" : "User"}
+                  </span>
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground">
                   {new Date(r.date + "T00:00:00").toLocaleDateString(undefined, { dateStyle: "medium" })} ·{" "}
@@ -135,7 +145,10 @@ function AdminPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Button asChild variant="ghost" size="sm">
-                  <Link to="/reservations/$id" params={{ id: r.id }}>
+                  <Link
+                    to={r.kind === "internal" ? "/internal/reservations/$id" : "/reservations/$id"}
+                    params={{ id: r.id }}
+                  >
                     View <ArrowUpRight className="h-3.5 w-3.5" />
                   </Link>
                 </Button>
