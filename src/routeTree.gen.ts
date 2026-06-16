@@ -15,6 +15,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ReservationsNewRouteImport } from './routes/reservations.new'
 import { Route as ReservationsIdRouteImport } from './routes/reservations.$id'
+import { Route as InternalDashboardRouteImport } from './routes/internal.dashboard'
 
 const SigninRoute = SigninRouteImport.update({
   id: '/signin',
@@ -46,12 +47,18 @@ const ReservationsIdRoute = ReservationsIdRouteImport.update({
   path: '/reservations/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InternalDashboardRoute = InternalDashboardRouteImport.update({
+  id: '/internal/dashboard',
+  path: '/internal/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/signin': typeof SigninRoute
+  '/internal/dashboard': typeof InternalDashboardRoute
   '/reservations/$id': typeof ReservationsIdRoute
   '/reservations/new': typeof ReservationsNewRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/signin': typeof SigninRoute
+  '/internal/dashboard': typeof InternalDashboardRoute
   '/reservations/$id': typeof ReservationsIdRoute
   '/reservations/new': typeof ReservationsNewRoute
 }
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/dashboard': typeof DashboardRoute
   '/signin': typeof SigninRoute
+  '/internal/dashboard': typeof InternalDashboardRoute
   '/reservations/$id': typeof ReservationsIdRoute
   '/reservations/new': typeof ReservationsNewRoute
 }
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/signin'
+    | '/internal/dashboard'
     | '/reservations/$id'
     | '/reservations/new'
   fileRoutesByTo: FileRoutesByTo
@@ -87,6 +97,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/signin'
+    | '/internal/dashboard'
     | '/reservations/$id'
     | '/reservations/new'
   id:
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/signin'
+    | '/internal/dashboard'
     | '/reservations/$id'
     | '/reservations/new'
   fileRoutesById: FileRoutesById
@@ -104,6 +116,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   DashboardRoute: typeof DashboardRoute
   SigninRoute: typeof SigninRoute
+  InternalDashboardRoute: typeof InternalDashboardRoute
   ReservationsIdRoute: typeof ReservationsIdRoute
   ReservationsNewRoute: typeof ReservationsNewRoute
 }
@@ -152,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReservationsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/internal/dashboard': {
+      id: '/internal/dashboard'
+      path: '/internal/dashboard'
+      fullPath: '/internal/dashboard'
+      preLoaderRoute: typeof InternalDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -160,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   DashboardRoute: DashboardRoute,
   SigninRoute: SigninRoute,
+  InternalDashboardRoute: InternalDashboardRoute,
   ReservationsIdRoute: ReservationsIdRoute,
   ReservationsNewRoute: ReservationsNewRoute,
 }
