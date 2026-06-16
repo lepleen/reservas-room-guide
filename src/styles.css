@@ -63,39 +63,50 @@
 
 :root {
   --radius: 0.5rem;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.21 0.02 264);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.02 264);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.02 264);
-  --primary: oklch(0.595 0.176 256.5);
-  --primary-foreground: oklch(0.99 0.005 250);
-  --secondary: oklch(0.972 0.005 250);
-  --secondary-foreground: oklch(0.25 0.02 264);
-  --muted: oklch(0.972 0.005 250);
-  --muted-foreground: oklch(0.5 0.02 257);
-  --accent: oklch(0.96 0.018 256);
-  --accent-foreground: oklch(0.35 0.12 256);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.99 0.005 250);
-  --border: oklch(0.93 0.008 250);
-  --input: oklch(0.93 0.008 250);
-  --ring: oklch(0.595 0.176 256.5);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.992 0.002 250);
-  --sidebar-foreground: oklch(0.25 0.02 264);
-  --sidebar-primary: oklch(0.595 0.176 256.5);
-  --sidebar-primary-foreground: oklch(0.99 0.005 250);
-  --sidebar-accent: oklch(0.96 0.018 256);
-  --sidebar-accent-foreground: oklch(0.35 0.12 256);
-  --sidebar-border: oklch(0.93 0.008 250);
-  --sidebar-ring: oklch(0.595 0.176 256.5);
+  --font-sans: "Aptos", "Open Sans", ui-sans-serif, system-ui, sans-serif;
+
+  /* Deloitte brand palette */
+  --brand-green-light: #86BC25;
+  --brand-green: #43B02A;
+  --brand-green-mid: #26890D;
+  --brand-green-dark: #046A38;
+  --brand-teal: #0D8390;
+  --brand-blue: #007CB0;
+  --brand-navy: #012169;
+  --brand-cyan: #00A3E0;
+
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #26890D;
+  --primary-foreground: #ffffff;
+  --secondary: #DDEFE8;
+  --secondary-foreground: #046A38;
+  --muted: #F4F6F4;
+  --muted-foreground: #63666A;
+  --accent: #E3E48D;
+  --accent-foreground: #2C5234;
+  --destructive: #C8102E;
+  --destructive-foreground: #ffffff;
+  --border: #D0D0CE;
+  --input: #D0D0CE;
+  --ring: #43B02A;
+  --chart-1: #86BC25;
+  --chart-2: #007CB0;
+  --chart-3: #00A3E0;
+  --chart-4: #0D8390;
+  --chart-5: #046A38;
+  --sidebar: #F7FAF4;
+  --sidebar-foreground: #2C5234;
+  --sidebar-primary: #26890D;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #DDEFE8;
+  --sidebar-accent-foreground: #046A38;
+  --sidebar-border: #D0D0CE;
+  --sidebar-ring: #43B02A;
 }
 
 .dark {
