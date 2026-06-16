@@ -12,6 +12,7 @@ export type Reservation = {
   id: string;
   ownerEmail: string;
   ownerName?: string;
+  kind: "user" | "internal";
   eventName: string;
   room: string;
   date: string; // ISO yyyy-mm-dd
@@ -39,7 +40,7 @@ export type Reservation = {
 };
 
 type User = { email: string; name: string };
-export type Role = "user" | "admin";
+export type Role = "user" | "admin" | "internal";
 
 type Ctx = {
   user: User | null;
@@ -49,7 +50,8 @@ type Ctx = {
   setRole: (r: Role) => void;
   reservations: Reservation[];
   addReservation: (
-    r: Omit<Reservation, "id" | "createdAt" | "ownerEmail" | "status">,
+    r: Omit<Reservation, "id" | "createdAt" | "ownerEmail" | "status" | "kind">,
+    kind?: Reservation["kind"],
   ) => Reservation;
   getReservation: (id: string) => Reservation | undefined;
   decideReservation: (
@@ -78,6 +80,7 @@ function seed(email: string, name?: string): Reservation[] {
       id: "seed-1",
       ownerEmail: email,
       ownerName: name,
+      kind: "user",
       eventName: "Quarterly Product Review",
       room: "Atlas Hall",
       date: plus(5),
@@ -109,6 +112,7 @@ function seed(email: string, name?: string): Reservation[] {
       id: "seed-2",
       ownerEmail: email,
       ownerName: name,
+      kind: "user",
       eventName: "Design Critique",
       room: "Studio B",
       date: plus(-7),
@@ -127,6 +131,28 @@ function seed(email: string, name?: string): Reservation[] {
       status: "approved",
       adminNotes: "Approved — studio B confirmed.",
       reviewedAt: new Date().toISOString(),
+    },
+    {
+      id: "seed-3",
+      ownerEmail: "ops@roomr.app",
+      ownerName: "Internal ops",
+      kind: "internal",
+      eventName: "Internal AV maintenance",
+      room: "Studio A",
+      date: plus(2),
+      startTime: "08:00",
+      endTime: "10:00",
+      attendees: 4,
+      setupStyle: "boardroom",
+      catering: false,
+      speakers: [],
+      hasLiveBroadcast: false,
+      hasInPersonSpeakers: false,
+      recording: false,
+      registrationRequired: false,
+      schedule: [{ time: "08:00", action: "AV system check" }],
+      createdAt: new Date().toISOString(),
+      status: "pending",
     },
   ];
 }
@@ -177,12 +203,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(USER_KEY);
   }, []);
 
-  const addReservation: Ctx["addReservation"] = (r) => {
+  const addReservation: Ctx["addReservation"] = (r, kind = "user") => {
     const full: Reservation = {
       ...r,
       id: crypto.randomUUID(),
       ownerEmail: user?.email ?? "guest@local",
       ownerName: user?.name,
+      kind,
       createdAt: new Date().toISOString(),
       status: "pending",
     };
