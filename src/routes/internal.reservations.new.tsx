@@ -14,7 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useStore, type Reservation } from "@/lib/store";
+import { useStore, findConflicts, getRoom, type Reservation } from "@/lib/store";
+import { RoomScheduleFields } from "@/components/RoomScheduleFields";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/internal/reservations/new")({
@@ -34,7 +35,7 @@ type Form = Omit<
 
 const empty: Form = {
   eventName: "",
-  room: "",
+  room: "Studio A",
   date: "",
   startTime: "09:00",
   endTime: "10:00",
@@ -56,16 +57,39 @@ const empty: Form = {
 };
 
 function NewInternalReservationPage() {
-  const { addReservation } = useStore();
+  const { addReservation, reservations } = useStore();
   const navigate = useNavigate();
   const [f, setF] = useState<Form>(empty);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((p) => ({ ...p, [k]: v }));
+  const patch = (p: Partial<Form>) => setF((prev) => ({ ...prev, ...p }));
+
+  const conflicts = findConflicts(reservations, {
+    date: f.date,
+    room: f.room,
+    startTime: f.startTime,
+    endTime: f.endTime,
+  });
+  const roomInfo = getRoom(f.room);
+  const overCapacity = roomInfo ? f.attendees > roomInfo.capacity : false;
+  const timeInvalid = f.startTime >= f.endTime;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!f.eventName || !f.room || !f.date) {
       toast.error("Event name, room, and date are required.");
+      return;
+    }
+    if (timeInvalid) {
+      toast.error("End time must be after start time.");
+      return;
+    }
+    if (conflicts.length > 0) {
+      toast.error("This room is already booked at that time. Pick a different slot.");
+      return;
+    }
+    if (overCapacity) {
+      toast.error(`${f.room} only fits ${roomInfo!.capacity} attendees.`);
       return;
     }
     const r = addReservation(f, "internal");
@@ -85,42 +109,26 @@ function NewInternalReservationPage() {
           <Field label="Event name">
             <Input value={f.eventName} onChange={(e) => set("eventName", e.target.value)} placeholder="Internal training session" />
           </Field>
-          <Field label="Room">
-            <Input value={f.room} onChange={(e) => set("room", e.target.value)} placeholder="Studio A" />
+          <RoomScheduleFields
+            room={f.room}
+            date={f.date}
+            startTime={f.startTime}
+            endTime={f.endTime}
+            attendees={f.attendees}
+            onChange={patch}
+          />
+          <Field label="Setup style">
+            <Select value={f.setupStyle} onValueChange={(v) => set("setupStyle", v as Form["setupStyle"])}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="theater">Theater</SelectItem>
+                <SelectItem value="classroom">Classroom</SelectItem>
+                <SelectItem value="u-shape">U-shape</SelectItem>
+                <SelectItem value="boardroom">Boardroom</SelectItem>
+                <SelectItem value="banquet">Banquet</SelectItem>
+              </SelectContent>
+            </Select>
           </Field>
-          <div className="grid grid-cols-3 gap-3">
-            <Field label="Date">
-              <Input type="date" value={f.date} onChange={(e) => set("date", e.target.value)} />
-            </Field>
-            <Field label="Start">
-              <Input type="time" value={f.startTime} onChange={(e) => set("startTime", e.target.value)} />
-            </Field>
-            <Field label="End">
-              <Input type="time" value={f.endTime} onChange={(e) => set("endTime", e.target.value)} />
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Attendees">
-              <Input
-                type="number"
-                min={1}
-                value={f.attendees}
-                onChange={(e) => set("attendees", Number(e.target.value))}
-              />
-            </Field>
-            <Field label="Setup style">
-              <Select value={f.setupStyle} onValueChange={(v) => set("setupStyle", v as Form["setupStyle"])}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="theater">Theater</SelectItem>
-                  <SelectItem value="classroom">Classroom</SelectItem>
-                  <SelectItem value="u-shape">U-shape</SelectItem>
-                  <SelectItem value="boardroom">Boardroom</SelectItem>
-                  <SelectItem value="banquet">Banquet</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
         </Section>
 
         <Section title="Catering" description="Optional food & drink details.">
