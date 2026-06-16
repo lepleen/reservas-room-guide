@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowUpRight, CheckCircle2, Clock, ShieldCheck, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, CheckCircle2, Clock, ShieldCheck, XCircle } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useStore, type Reservation } from "@/lib/store";
+import { useStore, findConflicts, type Reservation } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -104,7 +104,15 @@ function AdminPage() {
         </div>
       ) : (
         <ul className="space-y-3">
-          {list.map((r) => (
+          {list.map((r) => {
+            const conflicts = findConflicts(reservations, {
+              date: r.date,
+              room: r.room,
+              startTime: r.startTime,
+              endTime: r.endTime,
+              excludeId: r.id,
+            });
+            return (
             <li
               key={r.id}
               className="rounded-lg border border-border bg-card p-5 flex flex-col md:flex-row md:items-center gap-4"
@@ -129,6 +137,12 @@ function AdminPage() {
                   >
                     {r.kind === "internal" ? "Internal" : "User"}
                   </span>
+                  {conflicts.length > 0 && (
+                    <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider rounded bg-destructive/10 text-destructive px-1.5 py-0.5">
+                      <AlertTriangle className="h-3 w-3" />
+                      {conflicts.length} conflict{conflicts.length > 1 ? "s" : ""}
+                    </span>
+                  )}
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground">
                   {new Date(r.date + "T00:00:00").toLocaleDateString(undefined, { dateStyle: "medium" })} ·{" "}
@@ -137,6 +151,11 @@ function AdminPage() {
                 <div className="mt-1 text-xs text-muted-foreground">
                   Requested by {r.ownerName || r.ownerEmail}
                 </div>
+                {conflicts.length > 0 && (
+                  <p className="mt-2 text-xs text-destructive">
+                    Overlaps with: {conflicts.map((c) => `${c.eventName} (${c.startTime}–${c.endTime})`).join(", ")}
+                  </p>
+                )}
                 {r.adminNotes && (
                   <p className="mt-2 text-xs text-muted-foreground italic">
                     Note: {r.adminNotes}

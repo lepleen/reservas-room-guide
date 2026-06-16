@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   Sparkles,
   UserRound,
+  CalendarRange,
 } from "lucide-react";
 import { type ReactNode } from "react";
 import { useStore } from "@/lib/store";
@@ -22,15 +23,18 @@ export function AppShell({ children }: { children: ReactNode }) {
     role === "admin"
       ? [
           { to: "/admin", label: "Review requests", icon: ShieldCheck },
+          { to: "/calendar", label: "Calendar", icon: CalendarRange },
           { to: "/dashboard", label: "All events", icon: LayoutDashboard },
         ]
       : role === "internal"
         ? [
             { to: "/internal/dashboard", label: "Internal events", icon: Building2 },
+            { to: "/calendar", label: "Calendar", icon: CalendarRange },
             { to: "/internal/reservations/new", label: "New internal request", icon: Plus },
           ]
         : [
             { to: "/dashboard", label: "My events", icon: LayoutDashboard },
+            { to: "/calendar", label: "Calendar", icon: CalendarRange },
             { to: "/reservations/new", label: "New request", icon: Plus },
           ];
 
