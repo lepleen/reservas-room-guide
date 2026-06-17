@@ -15,6 +15,7 @@ import {
 import { useStore, findConflicts, type Reservation } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { AuthGuard } from "@/components/AuthGuard";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -23,7 +24,9 @@ export const Route = createFileRoute("/admin")({
       { name: "description", content: "Review and decide on submitted reservation requests." },
     ],
   }),
-  component: AdminPage,
+  component: () => (
+    <AuthGuard roles={["admin"]}><AdminPage /></AuthGuard>
+  ),
 });
 
 type Tab = "pending" | "approved" | "rejected" | "all";

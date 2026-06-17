@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useStore, type Reservation } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/StatusBadge";
+import { AuthGuard } from "@/components/AuthGuard";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -15,7 +16,9 @@ export const Route = createFileRoute("/dashboard")({
       { name: "description", content: "Your upcoming and past room reservations." },
     ],
   }),
-  component: DashboardPage,
+  component: () => (
+    <AuthGuard><DashboardPage /></AuthGuard>
+  ),
 });
 
 type Filter = "upcoming" | "past" | "all";
