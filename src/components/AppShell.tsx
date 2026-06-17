@@ -117,9 +117,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <div className="text-xs text-muted-foreground truncate">{user.email}</div>
               </div>
               <button
-                onClick={() => {
+                onClick={async () => {
+                  try {
+                    const { supabase } = await import("@/integrations/supabase/client");
+                    await supabase.auth.signOut();
+                  } catch {
+                    /* noop */
+                  }
                   logout();
-                  navigate({ to: "/" });
+                  navigate({ to: "/auth" });
                 }}
                 className="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/60 transition-colors"
               >
@@ -130,8 +136,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           ) : (
             <div className="px-3 py-2">
               <div className="text-xs text-muted-foreground">Browsing as guest</div>
-              <Link to="/signin" className="text-xs text-primary hover:underline">
-                Sign in (optional)
+              <Link to="/auth" className="text-xs text-primary hover:underline">
+                Sign in
               </Link>
             </div>
           )}
