@@ -17,6 +17,7 @@ import {
 import { useStore, findConflicts, getRoom, type Reservation } from "@/lib/store";
 import { RoomScheduleFields } from "@/components/RoomScheduleFields";
 import { toast } from "sonner";
+import { AuthGuard } from "@/components/AuthGuard";
 
 export const Route = createFileRoute("/reservations/new")({
   head: () => ({
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/reservations/new")({
       { name: "description", content: "Plan a new room reservation with full event details." },
     ],
   }),
-  component: NewReservationPage,
+  component: () => (<AuthGuard><NewReservationPage /></AuthGuard>),
 });
 
 type Form = Omit<

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useStore, type Reservation } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/StatusBadge";
+import { AuthGuard } from "@/components/AuthGuard";
 
 export const Route = createFileRoute("/internal/dashboard")({
   head: () => ({
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/internal/dashboard")({
       { name: "description", content: "Internal team room reservations." },
     ],
   }),
-  component: InternalDashboardPage,
+  component: () => (<AuthGuard roles={["internal", "admin"]}><InternalDashboardPage /></AuthGuard>),
 });
 
 type Filter = "upcoming" | "past" | "all";

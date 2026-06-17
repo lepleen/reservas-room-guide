@@ -4,9 +4,10 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
 import { StatusBadge } from "@/components/StatusBadge";
+import { AuthGuard } from "@/components/AuthGuard";
 
 export const Route = createFileRoute("/reservations/$id")({
-  component: ReservationDetailPage,
+  component: () => (<AuthGuard><ReservationDetailPage /></AuthGuard>),
 });
 
 function ReservationDetailPage() {
