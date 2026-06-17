@@ -38,11 +38,13 @@ function LandingPage() {
       <section className="mx-auto max-w-3xl px-6 pt-24 pb-12 text-center">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Event operations</p>
         <h1 className="mt-4 text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1]">
-          Plan every event detail.<br />Get it approved fast.
+          Plan every event detail.
+          <br />
+          Get it approved fast.
         </h1>
         <p className="mt-5 text-base text-muted-foreground max-w-xl mx-auto">
-          Submit room reservation requests with rooms, AV, catering, schedules and speakers.
-          Administrators review and decide — no accounts required to explore.
+          Submit room reservation requests with rooms, AV, catering, schedules and speakers. Administrators review and
+          decide — no accounts required to explore.
         </p>
       </section>
 
