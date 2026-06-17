@@ -67,17 +67,16 @@ function LandingPage() {
         />
 
       
+        {/*
         <RoleCard
-           {/* 
-        
-   
           icon={ShieldCheck}
           title="I'm an administrator"
           description={`Review submitted requests and approve or reject them.${pending ? ` ${pending} pending right now.` : ""}`}
           cta="Open admin panel"
           to="/admin"
           onClick={() => setRole("admin")}
-        />   */}
+        />
+        */}
       </section>
 
       <section className="mx-auto max-w-5xl px-6 pb-24 grid sm:grid-cols-4 gap-3">
