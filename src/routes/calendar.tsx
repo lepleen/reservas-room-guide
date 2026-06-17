@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useStore, type Reservation } from "@/lib/store";
 import { StatusBadge } from "@/components/StatusBadge";
 import { cn } from "@/lib/utils";
+import { AuthGuard } from "@/components/AuthGuard";
 
 export const Route = createFileRoute("/calendar")({
   head: () => ({
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/calendar")({
       { name: "description", content: "Month view of every room reservation." },
     ],
   }),
-  component: CalendarPage,
+  component: () => (<AuthGuard><CalendarPage /></AuthGuard>),
 });
 
 function CalendarPage() {

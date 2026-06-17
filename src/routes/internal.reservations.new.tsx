@@ -17,6 +17,7 @@ import {
 import { useStore, findConflicts, getRoom, type Reservation } from "@/lib/store";
 import { RoomScheduleFields } from "@/components/RoomScheduleFields";
 import { toast } from "sonner";
+import { AuthGuard } from "@/components/AuthGuard";
 
 export const Route = createFileRoute("/internal/reservations/new")({
   head: () => ({
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/internal/reservations/new")({
       { name: "description", content: "Submit an internal-team room reservation request." },
     ],
   }),
-  component: NewInternalReservationPage,
+  component: () => (<AuthGuard roles={["internal", "admin"]}><NewInternalReservationPage /></AuthGuard>),
 });
 
 type Form = Omit<
