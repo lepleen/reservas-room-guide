@@ -65,6 +65,8 @@ function LandingPage() {
           to="/internal/dashboard"
           onClick={() => setRole("internal")}
         />
+
+        <!-- 
         <RoleCard
           icon={ShieldCheck}
           title="I'm an administrator"
@@ -72,7 +74,7 @@ function LandingPage() {
           cta="Open admin panel"
           to="/admin"
           onClick={() => setRole("admin")}
-        />
+        />--> 
       </section>
 
       <section className="mx-auto max-w-5xl px-6 pb-24 grid sm:grid-cols-4 gap-3">
