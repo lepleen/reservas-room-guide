@@ -72,12 +72,25 @@ async function loadProfileAndRoles(userId: string) {
   return { profile, roles };
 }
 
+const AUTH_BYPASS = import.meta.env.VITE_AUTH_BYPASS === "true";
+
+const BYPASS_PROFILE: Profile = {
+  id: "00000000-0000-0000-0000-000000000000",
+  full_name: "Demo Admin",
+  email: "demo@example.com",
+  user_type: "administrator",
+  status: "active",
+  company: null,
+  phone: null,
+};
+const BYPASS_ROLES: AppRole[] = ["admin", "internal", "external"];
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [roles, setRoles] = useState<AppRole[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<Profile | null>(AUTH_BYPASS ? BYPASS_PROFILE : null);
+  const [roles, setRoles] = useState<AppRole[]>(AUTH_BYPASS ? BYPASS_ROLES : []);
+  const [loading, setLoading] = useState(!AUTH_BYPASS);
 
   const hydrate = useCallback(async (u: User | null) => {
     if (!u) {
