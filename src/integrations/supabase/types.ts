@@ -50,6 +50,120 @@ export type Database = {
         }
         Relationships: []
       }
+      reservations: {
+        Row: {
+          admin_notes: string | null
+          attendees: number
+          brand: string
+          broadcast_platform: string | null
+          catering: boolean
+          catering_items: Json
+          cnpj: string
+          created_at: string
+          date: string
+          end_time: string
+          equipment: Json
+          event_name: string
+          event_type: string
+          has_in_person_speakers: boolean
+          id: string
+          job_title: string
+          kind: string
+          led_color: string | null
+          max_capacity: number | null
+          microphone_type: string | null
+          notes: string | null
+          organizer_name: string
+          owner_id: string | null
+          phone: string
+          recording: boolean
+          registration_required: boolean
+          registration_url: string | null
+          reviewed_at: string | null
+          room: string
+          schedule: Json
+          setup_option_id: string
+          speakers: Json
+          start_time: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          attendees: number
+          brand: string
+          broadcast_platform?: string | null
+          catering?: boolean
+          catering_items?: Json
+          cnpj: string
+          created_at?: string
+          date: string
+          end_time: string
+          equipment?: Json
+          event_name: string
+          event_type: string
+          has_in_person_speakers?: boolean
+          id?: string
+          job_title: string
+          kind?: string
+          led_color?: string | null
+          max_capacity?: number | null
+          microphone_type?: string | null
+          notes?: string | null
+          organizer_name: string
+          owner_id?: string | null
+          phone: string
+          recording?: boolean
+          registration_required?: boolean
+          registration_url?: string | null
+          reviewed_at?: string | null
+          room: string
+          schedule?: Json
+          setup_option_id: string
+          speakers?: Json
+          start_time: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          attendees?: number
+          brand?: string
+          broadcast_platform?: string | null
+          catering?: boolean
+          catering_items?: Json
+          cnpj?: string
+          created_at?: string
+          date?: string
+          end_time?: string
+          equipment?: Json
+          event_name?: string
+          event_type?: string
+          has_in_person_speakers?: boolean
+          id?: string
+          job_title?: string
+          kind?: string
+          led_color?: string | null
+          max_capacity?: number | null
+          microphone_type?: string | null
+          notes?: string | null
+          organizer_name?: string
+          owner_id?: string | null
+          phone?: string
+          recording?: boolean
+          registration_required?: boolean
+          registration_url?: string | null
+          reviewed_at?: string | null
+          room?: string
+          schedule?: Json
+          setup_option_id?: string
+          speakers?: Json
+          start_time?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
