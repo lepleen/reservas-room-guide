@@ -46,8 +46,9 @@ export function ReservationForm({ mode }: Props) {
   const submitFn = useServerFn(createReservation);
 
   const form = useForm<ReservationFormValues>({
-    resolver: zodResolver(reservationFormSchema),
-    defaultValues: defaultReservationValues,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(reservationFormSchema) as any,
+    defaultValues: defaultReservationValues as ReservationFormValues,
     mode: "onBlur",
   });
 
