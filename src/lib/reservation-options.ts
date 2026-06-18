@@ -14,8 +14,18 @@ export const SETUP_OPTIONS: SetupOption[] = [
   { id: "auditorium-a-theater", label: "Theater — Auditorium A", room: "Auditorium A", capacity: 120 },
   { id: "auditorium-a-classroom", label: "Classroom — Auditorium A", room: "Auditorium A", capacity: 60 },
   { id: "auditorium-a-u-shape", label: "U-Shape — Auditorium A", room: "Auditorium A", capacity: 40 },
-  { id: "auditorium-a-lab-round", label: "Lab Layout (Round Tables) — Auditorium A", room: "Auditorium A", capacity: null },
-  { id: "auditorium-a-lab-7-tables", label: "Lab Layout — 7 table sets with 2 chairs each — Auditorium A", room: "Auditorium A", capacity: 14 },
+  {
+    id: "auditorium-a-lab-round",
+    label: "Lab Layout (Round Tables) — Auditorium A",
+    room: "Auditorium A",
+    capacity: null,
+  },
+  {
+    id: "auditorium-a-lab-7-tables",
+    label: "Lab Layout — 7 table sets with 2 chairs each — Auditorium A",
+    room: "Auditorium A",
+    capacity: 14,
+  },
 
   // Auditorium B
   { id: "auditorium-b-theater", label: "Theater — Auditorium B", room: "Auditorium B", capacity: 80 },
@@ -23,7 +33,12 @@ export const SETUP_OPTIONS: SetupOption[] = [
 
   // Misc (room left as a generic label — keeps existing names per answer 2)
   { id: "coffee-bistro", label: "Coffee Setup — White Bistro Tables", room: "Foyer", capacity: null },
-  { id: "coffee-bistro-side", label: "Coffee Setup — White Bistro Tables (Side Arrangement)", room: "Foyer", capacity: null },
+  {
+    id: "coffee-bistro-side",
+    label: "Coffee Setup — White Bistro Tables (Side Arrangement)",
+    room: "Foyer",
+    capacity: null,
+  },
   { id: "square-layout", label: "Square Layout", room: "Meeting Room", capacity: null },
 ];
 
@@ -44,16 +59,7 @@ export type EventType = (typeof EVENT_TYPES)[number]["value"];
 export const BROADCAST_PLATFORMS = ["YouTube", "Microsoft Teams", "Zoom"] as const;
 export type BroadcastPlatform = (typeof BROADCAST_PLATFORMS)[number];
 
-export const CATERING_ITEMS = [
-  "Coffee",
-  "Tea",
-  "Water",
-  "Soft drinks",
-  "Pastries",
-  "Sandwiches",
-  "Fruit platter",
-  "Hot meal",
-] as const;
+export const CATERING_ITEMS = ["Welcome coffee", "Coffee break", "Lunch", "Coffee break", "Happy hour"] as const;
 
 export const EQUIPMENT_ITEMS = [
   "Extra microphone",
