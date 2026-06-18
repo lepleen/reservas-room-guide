@@ -107,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (AUTH_BYPASS) return;
     // Register listener FIRST, then read existing session
     const { data: sub } = supabase.auth.onAuthStateChange((event, sess) => {
       setSession(sess);
