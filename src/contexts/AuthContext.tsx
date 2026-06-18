@@ -184,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       roles,
       loading,
-      isAuthenticated: !!session,
+      isAuthenticated: AUTH_BYPASS || !!session,
       hasRole: (role) => roles.includes(role),
       hasAnyRole: (rs) => rs.some((r) => roles.includes(r)),
       signIn,
