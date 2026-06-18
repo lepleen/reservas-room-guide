@@ -13,20 +13,10 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
-import {
-  reservationFormSchema,
-  defaultReservationValues,
-  type ReservationFormValues,
-} from "@/lib/reservation-schema";
+import { reservationFormSchema, defaultReservationValues, type ReservationFormValues } from "@/lib/reservation-schema";
 import {
   SETUP_OPTIONS,
   getSetupOption,
@@ -81,7 +71,6 @@ export function ReservationForm({ mode }: Props) {
     }
   });
 
-
   return (
     <form onSubmit={onSubmit} className="space-y-10 max-w-3xl">
       {/* ORGANIZER */}
@@ -103,11 +92,7 @@ export function ReservationForm({ mode }: Props) {
           <Field label="Brand *" error={form.formState.errors.brand?.message}>
             <Input {...form.register("brand")} placeholder="Brand name" />
           </Field>
-          <Field
-            label="CNPJ *"
-            error={form.formState.errors.cnpj?.message}
-            hint="14 digits"
-          >
+          <Field label="CNPJ *" error={form.formState.errors.cnpj?.message} hint="14 digits">
             <Input {...form.register("cnpj")} placeholder="12.345.678/0001-95" />
           </Field>
         </div>
@@ -130,10 +115,7 @@ export function ReservationForm({ mode }: Props) {
             <SelectContent>
               {SETUP_OPTIONS.map((o) => (
                 <SelectItem key={o.id} value={o.id}>
-                  {o.label}{" "}
-                  <span className="text-muted-foreground">
-                    · max {o.capacity ?? "Undefined"}
-                  </span>
+                  {o.label} <span className="text-muted-foreground">· max {o.capacity ?? "Undefined"}</span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -141,8 +123,7 @@ export function ReservationForm({ mode }: Props) {
           {setup && (
             <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 mt-1">
               <Users className="h-3 w-3" />
-              {setup.room} · max capacity{" "}
-              {setup.capacity != null ? setup.capacity : "Undefined"}
+              {setup.room} · max capacity {setup.capacity != null ? setup.capacity : "Undefined"}
             </p>
           )}
         </Field>
@@ -199,18 +180,13 @@ export function ReservationForm({ mode }: Props) {
         </RadioGroup>
 
         {v.eventType === "live_broadcast" && (
-          <Field
-            label="Broadcast platform *"
-            error={form.formState.errors.broadcastPlatform?.message}
-          >
+          <Field label="Broadcast platform *" error={form.formState.errors.broadcastPlatform?.message}>
             <Select
               value={v.broadcastPlatform ?? ""}
               onValueChange={(val) =>
-                form.setValue(
-                  "broadcastPlatform",
-                  val as ReservationFormValues["broadcastPlatform"],
-                  { shouldValidate: true },
-                )
+                form.setValue("broadcastPlatform", val as ReservationFormValues["broadcastPlatform"], {
+                  shouldValidate: true,
+                })
               }
             >
               <SelectTrigger>
@@ -253,9 +229,7 @@ export function ReservationForm({ mode }: Props) {
         {v.catering && (
           <div className="space-y-2">
             {form.formState.errors.cateringItems?.message && (
-              <p className="text-xs text-destructive">
-                {form.formState.errors.cateringItems.message}
-              </p>
+              <p className="text-xs text-destructive">{form.formState.errors.cateringItems.message}</p>
             )}
             {v.cateringItems.map((c, i) => (
               <div key={i} className="grid grid-cols-[1fr_140px_auto] gap-2">
@@ -308,49 +282,15 @@ export function ReservationForm({ mode }: Props) {
               variant="outline"
               size="sm"
               onClick={() =>
-                form.setValue(
-                  "cateringItems",
-                  [...v.cateringItems, { item: CATERING_ITEMS[0], time: "09:00" }],
-                  { shouldValidate: true },
-                )
+                form.setValue("cateringItems", [...v.cateringItems, { item: CATERING_ITEMS[0], time: "09:00" }], {
+                  shouldValidate: true,
+                })
               }
             >
               <Plus className="h-4 w-4" /> Add catering item
             </Button>
           </div>
         )}
-      </Section>
-
-      {/* EQUIPMENT */}
-      <Section title="Additional equipment" description="Optional add-ons.">
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Additional equipment may generate extra costs.
-          </AlertDescription>
-        </Alert>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {EQUIPMENT_ITEMS.map((item) => {
-            const checked = v.equipment.includes(item);
-            return (
-              <label
-                key={item}
-                className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 cursor-pointer"
-              >
-                <Checkbox
-                  checked={checked}
-                  onCheckedChange={(c) => {
-                    const next = c
-                      ? [...v.equipment, item]
-                      : v.equipment.filter((e) => e !== item);
-                    form.setValue("equipment", next);
-                  }}
-                />
-                <span className="text-sm">{item}</span>
-              </label>
-            );
-          })}
-        </div>
       </Section>
 
       {/* SPEAKERS */}
@@ -401,9 +341,7 @@ export function ReservationForm({ mode }: Props) {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() =>
-                form.setValue("speakers", [...v.speakers, { name: "", topic: "" }])
-              }
+              onClick={() => form.setValue("speakers", [...v.speakers, { name: "", topic: "" }])}
             >
               <Plus className="h-4 w-4" /> Add speaker
             </Button>
@@ -413,21 +351,12 @@ export function ReservationForm({ mode }: Props) {
 
       {/* AV */}
       <Section title="AV" description="Microphone & accents.">
-        <Toggle
-          label="Record the event"
-          checked={v.recording}
-          onChange={(val) => form.setValue("recording", val)}
-        />
+        <Toggle label="Record the event" checked={v.recording} onChange={(val) => form.setValue("recording", val)} />
         <div className="grid grid-cols-2 gap-3">
           <Field label="Microphone type">
             <Select
               value={v.microphoneType ?? "handheld"}
-              onValueChange={(val) =>
-                form.setValue(
-                  "microphoneType",
-                  val as ReservationFormValues["microphoneType"],
-                )
-              }
+              onValueChange={(val) => form.setValue("microphoneType", val as ReservationFormValues["microphoneType"])}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -448,12 +377,36 @@ export function ReservationForm({ mode }: Props) {
                 onChange={(e) => form.setValue("ledColor", e.target.value)}
                 className="h-10 w-12 rounded-md border border-input bg-background cursor-pointer"
               />
-              <Input
-                value={v.ledColor ?? ""}
-                onChange={(e) => form.setValue("ledColor", e.target.value)}
-              />
+              <Input value={v.ledColor ?? ""} onChange={(e) => form.setValue("ledColor", e.target.value)} />
             </div>
           </Field>
+        </div>
+      </Section>
+      {/* EQUIPMENT */}
+      <Section title="Additional equipment" description="Optional add-ons.">
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>Additional equipment may generate extra costs.</AlertDescription>
+        </Alert>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {EQUIPMENT_ITEMS.map((item) => {
+            const checked = v.equipment.includes(item);
+            return (
+              <label
+                key={item}
+                className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 cursor-pointer"
+              >
+                <Checkbox
+                  checked={checked}
+                  onCheckedChange={(c) => {
+                    const next = c ? [...v.equipment, item] : v.equipment.filter((e) => e !== item);
+                    form.setValue("equipment", next);
+                  }}
+                />
+                <span className="text-sm">{item}</span>
+              </label>
+            );
+          })}
         </div>
       </Section>
 
@@ -465,10 +418,7 @@ export function ReservationForm({ mode }: Props) {
           onChange={(val) => form.setValue("registrationRequired", val)}
         />
         {v.registrationRequired && (
-          <Field
-            label="Registration URL"
-            error={form.formState.errors.registrationUrl?.message}
-          >
+          <Field label="Registration URL" error={form.formState.errors.registrationUrl?.message}>
             <Input {...form.register("registrationUrl")} placeholder="https://…" />
           </Field>
         )}
@@ -516,9 +466,7 @@ export function ReservationForm({ mode }: Props) {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() =>
-              form.setValue("schedule", [...v.schedule, { time: "09:00", action: "" }])
-            }
+            onClick={() => form.setValue("schedule", [...v.schedule, { time: "09:00", action: "" }])}
           >
             <Plus className="h-4 w-4" /> Add schedule item
           </Button>
@@ -534,9 +482,7 @@ export function ReservationForm({ mode }: Props) {
         <Button
           type="button"
           variant="ghost"
-          onClick={() =>
-            navigate({ to: mode === "internal" ? "/internal/dashboard" : "/dashboard" })
-          }
+          onClick={() => navigate({ to: mode === "internal" ? "/internal/dashboard" : "/dashboard" })}
         >
           Cancel
         </Button>
@@ -548,15 +494,7 @@ export function ReservationForm({ mode }: Props) {
   );
 }
 
-function Section({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
     <section className="grid md:grid-cols-[220px_1fr] gap-6">
       <div>
@@ -581,9 +519,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        {label}
-      </Label>
+      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</Label>
       {children}
       {hint && !error && <p className="text-xs text-muted-foreground">{hint}</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
@@ -591,15 +527,7 @@ function Field({
   );
 }
 
-function Toggle({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <div className="flex items-center justify-between rounded-md border border-border bg-card px-4 py-3">
       <span className="text-sm">{label}</span>
