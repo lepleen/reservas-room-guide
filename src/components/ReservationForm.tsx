@@ -56,8 +56,16 @@ export function ReservationForm({ mode }: Props) {
   const setup = useMemo(() => getSetupOption(v.setupOptionId), [v.setupOptionId]);
   const overCapacity = setup?.capacity != null && v.attendees > setup.capacity;
 
+  const authBypass = import.meta.env.VITE_AUTH_BYPASS === "true";
+
   const onSubmit = form.handleSubmit(async (values) => {
     try {
+      if (authBypass) {
+        // No real session — skip persistence and go to the dashboard.
+        toast.success("Reservation captured (auth bypass — not persisted)");
+        navigate({ to: mode === "internal" ? "/internal/dashboard" : "/dashboard" });
+        return;
+      }
       const res = await submitFn({
         data: { kind: mode === "internal" ? "internal" : "user", values },
       });
@@ -72,6 +80,7 @@ export function ReservationForm({ mode }: Props) {
       toast.error(msg);
     }
   });
+
 
   return (
     <form onSubmit={onSubmit} className="space-y-10 max-w-3xl">
