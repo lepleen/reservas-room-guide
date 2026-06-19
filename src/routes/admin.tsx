@@ -138,7 +138,15 @@ function AdminPage() {
         ))}
       </div>
 
-      {list.length === 0 ? (
+      {isLoading ? (
+        <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center text-sm text-muted-foreground">
+          Loading reservations…
+        </div>
+      ) : error ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 text-destructive p-6 text-sm">
+          {(error as Error).message}
+        </div>
+      ) : list.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center">
           <h3 className="text-base font-medium">Nothing here</h3>
           <p className="mt-1 text-sm text-muted-foreground">No requests match this filter.</p>
