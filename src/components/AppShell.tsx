@@ -11,11 +11,19 @@ import {
   CalendarRange,
 } from "lucide-react";
 import { type ReactNode } from "react";
-import { useStore } from "@/lib/store";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user, logout, role, setRole } = useStore();
+  const { user: authUser, profile, roles, signOut } = useAuth();
+  const role: "admin" | "internal" | "user" = roles.includes("admin")
+    ? "admin"
+    : roles.includes("internal")
+      ? "internal"
+      : "user";
+  const user = authUser
+    ? { name: profile?.full_name || authUser.email || "Account", email: authUser.email ?? "" }
+    : null;
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
