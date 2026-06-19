@@ -38,7 +38,7 @@ function LandingPage() {
       <section className="mx-auto max-w-3xl px-6 pt-24 pb-12 text-center">
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Event operations</p>
         <h1 className="mt-4 text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1]">
-          Plan every event detail.
+          oi.
           <br />
           Get it approved fast.
         </h1>
