@@ -125,12 +125,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               <button
                 onClick={async () => {
                   try {
-                    const { supabase } = await import("@/integrations/supabase/client");
-                    await supabase.auth.signOut();
+                    await signOut();
                   } catch {
                     /* noop */
                   }
-                  logout();
                   navigate({ to: "/auth" });
                 }}
                 className="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/60 transition-colors"
