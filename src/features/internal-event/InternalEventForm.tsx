@@ -521,6 +521,13 @@ export function InternalEventForm() {
         </Button>
       </div>
     </form>
+    <RequestAvailabilityDialog
+      open={conflictOpen}
+      onOpenChange={setConflictOpen}
+      draft={draft}
+      onNotifyRequested={setPendingAvailabilityRequest}
+    />
+    </>
   );
 }
 
