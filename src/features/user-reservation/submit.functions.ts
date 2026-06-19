@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { userReservationSchema, type UserReservationValues } from "./schema";
 import { getSetupOption } from "@/lib/reservation-options";
+import { RoomUnavailableError } from "@/features/shared/conflict-error";
+import type { AvailabilityConflict } from "@/features/shared/availability.functions";
 
 export const createUserReservation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -26,10 +28,7 @@ export const createUserReservation = createServerFn({ method: "POST" })
     });
     if (confErr) throw new Error(confErr.message);
     if (conflicts && conflicts.length > 0) {
-      const c = conflicts[0];
-      throw new Error(
-        `Time conflict with "${c.event_name}" (${String(c.start_time).slice(0,5)}–${String(c.end_time).slice(0,5)}) in ${setup.room}.`,
-      );
+      throw new RoomUnavailableError(toAvailabilityConflicts(conflicts));
     }
 
 
