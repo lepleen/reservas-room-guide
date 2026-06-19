@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, ArrowUpRight, Ban, CheckCircle2, CircleCheck, ShieldCheck, XCircle } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
