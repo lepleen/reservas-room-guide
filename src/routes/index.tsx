@@ -65,7 +65,6 @@ function LandingPage() {
           description="Browse events, fill the reservation form, and submit a request to the administrator."
           cta="User"
           to="/dashboard"
-          onClick={() => setRole("user")}
         />
         <RoleCard
           icon={Building2}
@@ -73,17 +72,15 @@ function LandingPage() {
           description="Submit room requests on behalf of internal teams in a fully separated workspace."
           cta="Internal user"
           to="/internal/dashboard"
-          onClick={() => setRole("internal")}
         />
 
         {/*
         <RoleCard
           icon={ShieldCheck}
           title="I'm an administrator"
-          description={`Review submitted requests and approve or reject them.${pending ? ` ${pending} pending right now.` : ""}`}
+          description="Review submitted requests and approve or reject them."
           cta="Open admin panel"
           to="/admin"
-          onClick={() => setRole("admin")}
         />
         */}
       </section>
