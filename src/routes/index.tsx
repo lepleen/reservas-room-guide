@@ -51,6 +51,9 @@ function LandingPage() {
           Estou atualizando o projeto diariamente, fique a vontade para me enviar feedbacks.
           <br />
         </h1>
+        <h6 className="mt-4 text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1]">
+          (doug é careca 😜)
+        </h6>
         <p className="mt-5 text-base text-muted-foreground max-w-xl mx-auto">
           Submit room reservation requests with rooms, AV, catering, schedules and speakers.
           Administrators review and decide — no accounts required to explore.
