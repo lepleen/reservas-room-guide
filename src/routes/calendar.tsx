@@ -15,7 +15,11 @@ export const Route = createFileRoute("/calendar")({
       { name: "description", content: "Month view of every room reservation." },
     ],
   }),
-  component: () => (<AuthGuard><CalendarPage /></AuthGuard>),
+  component: () => (
+    <AuthGuard>
+      <CalendarPage />
+    </AuthGuard>
+  ),
 });
 
 function CalendarPage() {
