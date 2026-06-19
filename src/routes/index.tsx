@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Building2, LayoutDashboard, Plus, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { ArrowRight, Building2, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -22,8 +21,6 @@ export const Route = createFileRoute("/")({
 });
 
 function LandingPage() {
-  const { setRole, reservations } = useStore();
-  const pending = reservations.filter((r) => r.status === "pending").length;
 
   return (
     <div className="min-h-screen bg-background">
