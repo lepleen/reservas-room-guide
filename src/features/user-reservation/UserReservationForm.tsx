@@ -141,6 +141,17 @@ export function UserReservationForm() {
           </Field>
         </div>
 
+        <AvailabilityStatus
+          query={availability}
+          enabled={availabilityEnabled}
+          payload={
+            setup?.room
+              ? { room: setup.room, date: v.date, startTime: v.startTime, endTime: v.endTime }
+              : null
+          }
+        />
+
+
         <Field label="Attendees" error={form.formState.errors.attendees?.message}>
           <Input type="number" min={1} {...form.register("attendees", { valueAsNumber: true })} />
         </Field>
