@@ -1,72 +1,93 @@
-# Decouple User Reservation and Internal Events forms
+## Goal
 
-## Current architecture (shared today)
+Add per-room, time-overlap availability validation to both reservation flows (External User and Internal Event), with frontend hints, a friendly "Request availability" dialog, and authoritative backend enforcement.
 
-Both `/reservations/new` and `/internal/reservations/new` route to the same building blocks:
+## Architecture analysis (current state)
 
-- `src/components/ReservationForm.tsx` — single component, switched only by a `mode: "external" | "internal"` prop
-- `src/lib/reservation-schema.ts` — single Zod schema, `ReservationFormValues` type, `defaultReservationValues`
-- `src/lib/reservation-options.ts` — setup options, event types, broadcast platforms, catering, equipment (shared catalogs)
-- `src/lib/reservations.functions.ts` — single `createReservation` server function, branches on `kind: "user" | "internal"`
-- Backend: a single `public.reservations` table with a `kind` column already separates the two flows
+- **Status storage**: `public.reservations.status text CHECK IN ('pending','approved','rejected')`. Needs `confirmed` + `cancelled` added.
+- **Availability today**: none. Both forms accept any date/time. `findConflicts` exists in `src/lib/store.tsx` but is unused by the new Supabase-backed flows.
+- **Calendar component**: `src/routes/calendar.tsx` is read-only visualization. Date pickers in forms are plain `<input type="date">` / `<input type="time">` — there is no calendar picker to disable dates on.
+- **Submit path**: `src/features/user-reservation/submit.functions.ts` and `src/features/internal-event/submit.functions.ts` both `INSERT` into `reservations` with no conflict check.
+- **Room**: derived from `setupOptionId` via `getSetupOption(...).room` — stored as `reservations.room`.
 
-Result: any field/validation/UI change on one form automatically lands on the other. This is what we need to break.
+## Plan
 
-## Architectural note (worth flagging before we start)
+### 1. Database (one migration)
 
-`reservation-options.ts` (setup styles, rooms, catering items, equipment list, broadcast platforms) is **catalog data**, not business logic. The acceptance criteria say "adding a field to one form must not affect the other" — that's about form fields, not about which rooms exist. I recommend keeping these catalogs shared. If the user later wants different catalogs per flow (e.g. internal-only equipment), we can fork them then. **Confirm if you'd rather fork the catalogs now.**
+- Drop the existing status CHECK; add a new CHECK allowing `pending | approved | confirmed | rejected | cancelled`.
+- Add an EXCLUSION constraint to atomically prevent overlapping bookings in the same room with a blocking status — the only race-safe option:
+  ```sql
+  CREATE EXTENSION IF NOT EXISTS btree_gist;
+  ALTER TABLE public.reservations
+    ADD CONSTRAINT reservations_no_overlap
+    EXCLUDE USING gist (
+      room WITH =,
+      date WITH =,
+      tsrange(
+        (date::text || ' ' || start_time::text)::timestamp,
+        (date::text || ' ' || end_time::text)::timestamp,
+        '[)'
+      ) WITH &&
+    ) WHERE (status IN ('pending','approved','confirmed'));
+  ```
+- Add a helper SQL function `public.find_conflicts(_room text, _date date, _start time, _end time, _exclude uuid default null)` returning conflicting rows (blocking statuses only). Used by server functions and clients via RPC.
+- `GRANT EXECUTE ON FUNCTION public.find_conflicts(...) TO authenticated;`
 
-The `reservations` DB table is also shared (distinguished by `kind`). Splitting it into two tables is a much larger change with data-migration implications — out of scope for this refactor unless you explicitly ask.
+### 2. Server functions
 
-## Target structure
+- New `src/features/shared/availability.functions.ts`:
+  - `checkAvailability({ room, date, startTime, endTime, excludeId? })` — calls `find_conflicts`; returns `{ available, conflicts: [{ id, eventName, startTime, endTime, status }] }`.
+- `createUserReservation` and `createInternalEvent`: call `checkAvailability` before insert; if conflicts, throw a typed error. The DB exclusion constraint is the final guard against races; translate Postgres `23P01` to a friendly message.
 
-```text
-src/features/
-├── user-reservation/
-│   ├── UserReservationForm.tsx        // own component, own RHF state
-│   ├── schema.ts                      // own Zod schema + type + defaults
-│   └── submit.functions.ts            // own createUserReservation server fn
-└── internal-event/
-    ├── InternalEventForm.tsx
-    ├── schema.ts
-    └── submit.functions.ts
-```
+### 3. Forms (both User + Internal, identical logic in their own files — no cross-coupling)
 
-Shared (unchanged): `src/components/ui/*`, `AppShell`, `PageHeader`, `AuthGuard`, `reservation-options.ts` (catalogs), generic helpers.
+- After `room + date + startTime + endTime` are all set and times pass basic validation, call `checkAvailability` (debounced, via TanStack Query keyed on those four values).
+- Show inline status under the time fields:
+  - Green "Time slot available."
+  - Red "This time conflicts with: &nbsp; (HH:MM–HH:MM)." + button **"Request availability"**.
+- Disable Submit when conflicts exist or query is pending.
+- Server submission still validates; show error toast on failure.
 
-Deleted after migration: `src/components/ReservationForm.tsx`, `src/lib/reservation-schema.ts`, `src/lib/reservations.functions.ts`.
+### 4. "Request availability" dialog (shared, presentation-only)
 
-## Steps
+- New `src/components/RequestAvailabilityDialog.tsx`: shadcn `Dialog` with a short explanation and a single **Send email** button that opens a `mailto:` link.
+- Email is sent to a configurable address read from `import.meta.env.VITE_AVAILABILITY_REQUEST_EMAIL` with fallback `availability@example.com` (temporary generic address per user request — added to `.env`).
+- Subject: `Reservation Availability Request`
+- Body: pre-filled with the requested room, date, time interval, and placeholder fields (Name / Company / Phone / Email) — kept as a plain template string so it's easy to swap later for a waitlist table.
+- Designed as a thin abstraction: `onRequest({ room, date, startTime, endTime })` — future waitlist/notification implementations replace only this handler.
 
-1. **Create `user-reservation/`**
-   - `schema.ts`: copy the current Zod schema as `userReservationSchema`, export `UserReservationValues` + `defaultUserReservationValues`.
-   - `UserReservationForm.tsx`: copy current `ReservationForm.tsx`, drop the `mode` prop, hardwire external navigation targets (`/dashboard`, `/reservations/$id`).
-   - `submit.functions.ts`: `createUserReservation` server fn — same auth middleware, hardcodes `kind: "user"` in the insert.
+### 5. Calendar route (`/calendar`)
 
-2. **Create `internal-event/`** — mirror of the above:
-   - `InternalEventForm.tsx` navigates to `/internal/dashboard` and `/internal/reservations/$id`.
-   - `createInternalEvent` server fn hardcodes `kind: "internal"`.
-   - Identical fields for now (matches current behavior); future divergence is now safe.
-
-3. **Update routes**
-   - `src/routes/reservations.new.tsx` → render `<UserReservationForm />`.
-   - `src/routes/internal.reservations.new.tsx` → render `<InternalEventForm />`.
-
-4. **Remove the shared modules**
-   - Delete `src/components/ReservationForm.tsx`, `src/lib/reservation-schema.ts`, `src/lib/reservations.functions.ts` once nothing imports them.
-   - Grep first to confirm no other route/component still imports the old paths.
-
-5. **Verification**
-   - Typecheck clean.
-   - Both routes render and submit (auth-bypass path still works on both).
-   - Adding a throwaway field to `user-reservation/schema.ts` does NOT touch the internal form — quick smoke check, then revert.
+- Out of scope for blocking, since blocking is now per-room time interval, not full days. Leave existing visualization unchanged.
 
 ## Out of scope
 
-- DB schema split (still one `reservations` table, `kind` column).
-- Catalog split in `reservation-options.ts` (unless you say otherwise).
-- Visual redesign — pure structural refactor; markup stays identical.
+- Admin status-update UI (status changes already free the slot automatically via the exclusion constraint + query refetch).
+- Replacing native date/time inputs with a richer picker.
+- Real waitlist persistence (left as a future swap-in behind the dialog handler).
 
-## Question before I implement
+## Files touched
 
-Fork `reservation-options.ts` (catalogs) per flow too, or keep it shared? Default plan is **keep shared**.
+- **New migration**: `supabase/migrations/<ts>_reservation_availability.sql`
+- **New**: `src/features/shared/availability.functions.ts`, `src/components/RequestAvailabilityDialog.tsx`
+- **Edit**: `src/features/user-reservation/UserReservationForm.tsx`, `src/features/user-reservation/submit.functions.ts`, `src/features/internal-event/InternalEventForm.tsx`, `src/features/internal-event/submit.functions.ts`, `.env`
+
+## Verification
+
+- Typecheck clean.
+- Manual: create reservation in Atlas Hall 09:00–12:00 → try overlapping in same room (blocked, dialog opens) → try same time in Nova Auditorium (allowed) → try 13:00–15:00 in Atlas (allowed) → cancel original via SQL (`UPDATE reservations SET status='cancelled'`) → previously blocked slot becomes available.  
+  
+  
+When editing an existing reservation, the reservation being edited must not be considered a conflict.
+  Availability must be recalculated immediately whenever the user changes:
+  - Room
+  - Date
+  - Start Time
+  - End Time
+  The system must reject reservations where:
+  - Start Time equals End Time.
+  - Start Time is after End Time.
+  No fallback email address should be used.
+  The request email address must be configured through environment variables.
+  Availability validation must use the application's configured timezone.
+  If reservation editing is supported, conflict detection must ignore the current reservation using its unique identifier.
