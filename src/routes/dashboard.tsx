@@ -66,12 +66,12 @@ function DashboardPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Your events"
+        title="Your external events"
         description="A calm overview of everything you have planned."
         action={
           <Button asChild>
             <Link to="/reservations/new">
-              <Plus className="h-4 w-4" /> New reservation
+              <Plus className="h-4 w-4" /> New external reservation
             </Link>
           </Button>
         }
@@ -195,7 +195,7 @@ function EmptyState() {
       </p>
       <Button asChild className="mt-4">
         <Link to="/reservations/new">
-          <Plus className="h-4 w-4" /> New reservation
+          <Plus className="h-4 w-4" /> New external reservation
         </Link>
       </Button>
     </div>

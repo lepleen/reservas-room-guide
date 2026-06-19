@@ -62,7 +62,7 @@ function LandingPage() {
           icon={UserRound}
           title="I'm a user"
           description="Browse events, fill the reservation form, and submit a request to the administrator."
-          cta="User"
+          cta="External user"
           to="/dashboard"
         />
         <RoleCard

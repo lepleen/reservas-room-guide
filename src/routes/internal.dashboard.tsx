@@ -63,7 +63,7 @@ function InternalDashboardPage() {
   return (
     <AppShell>
       <PageHeader
-        title="Internal events"
+        title="Your Internal events"
         description="Reservations submitted by the internal team."
         action={
           <Button asChild>

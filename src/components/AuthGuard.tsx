@@ -15,7 +15,7 @@ interface AuthGuardProps {
  * `_authenticated` layout for routes that haven't been moved into that subtree.
  */
 export function AuthGuard({ children, roles, redirectTo = "/auth" }: AuthGuardProps) {
-  if (import.meta.env.VITE_AUTH_BYPASS === "true") return <>{children}</>;
+  if (import.meta.env.VITE_AUTH_BYPASS === "false") return <>{children}</>;
   const { loading, isAuthenticated, hasAnyRole } = useAuth();
   const navigate = useNavigate();
 
