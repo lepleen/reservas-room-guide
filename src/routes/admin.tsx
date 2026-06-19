@@ -2,7 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, ArrowUpRight, Ban, CheckCircle2, CircleCheck, ShieldCheck, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowUpRight,
+  Ban,
+  CheckCircle2,
+  CircleCheck,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -121,21 +129,23 @@ function AdminPage() {
       />
 
       <div className="inline-flex flex-wrap rounded-md border border-border bg-card p-1 mb-6">
-        {(["pending", "approved", "confirmed", "rejected", "cancelled", "all"] as Tab[]).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={cn(
-              "px-3 py-1.5 text-sm rounded-[6px] capitalize transition-colors inline-flex items-center gap-2",
-              tab === t
-                ? "bg-secondary text-foreground font-medium"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {t}
-            <span className="text-xs text-muted-foreground">{counts[t]}</span>
-          </button>
-        ))}
+        {(["pending", "approved", "confirmed", "rejected", "cancelled", "all"] as Tab[]).map(
+          (t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={cn(
+                "px-3 py-1.5 text-sm rounded-[6px] capitalize transition-colors inline-flex items-center gap-2",
+                tab === t
+                  ? "bg-secondary text-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {t}
+              <span className="text-xs text-muted-foreground">{counts[t]}</span>
+            </button>
+          ),
+        )}
       </div>
 
       {isLoading ? (
@@ -174,7 +184,9 @@ function AdminPage() {
                     <span
                       className={cn(
                         "text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5",
-                        isInternal ? "bg-accent text-accent-foreground" : "bg-secondary text-foreground",
+                        isInternal
+                          ? "bg-accent text-accent-foreground"
+                          : "bg-secondary text-foreground",
                       )}
                     >
                       {isInternal ? "Internal" : "External"}
@@ -187,8 +199,10 @@ function AdminPage() {
                     )}
                   </div>
                   <div className="mt-1 text-sm text-muted-foreground">
-                    {new Date(r.date + "T00:00:00").toLocaleDateString(undefined, { dateStyle: "medium" })} ·{" "}
-                    {r.startTime}–{r.endTime} · {r.room} · {r.attendees} attendees
+                    {new Date(r.date + "T00:00:00").toLocaleDateString(undefined, {
+                      dateStyle: "medium",
+                    })}{" "}
+                    · {r.startTime}–{r.endTime} · {r.room} · {r.attendees} attendees
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     Requested by {r.ownerName || r.ownerEmail || r.organizerName}
@@ -196,10 +210,16 @@ function AdminPage() {
                   {conflicts.length > 0 && (
                     <p className="mt-2 text-xs text-destructive">
                       Overlaps with:{" "}
-                      {conflicts.map((c) => `${c.eventName} (${c.startTime}–${c.endTime})`).join(", ")}
+                      {conflicts
+                        .map((c) => `${c.eventName} (${c.startTime}–${c.endTime})`)
+                        .join(", ")}
                     </p>
                   )}
-                  {r.adminNotes && <p className="mt-2 text-xs text-muted-foreground italic">Note: {r.adminNotes}</p>}
+                  {r.adminNotes && (
+                    <p className="mt-2 text-xs text-muted-foreground italic">
+                      Note: {r.adminNotes}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <Button asChild variant="ghost" size="sm">
@@ -212,7 +232,11 @@ function AdminPage() {
                   </Button>
                   {r.status === "pending" && (
                     <>
-                      <Button size="sm" variant="outline" onClick={() => setDecision({ r, type: "rejected" })}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setDecision({ r, type: "rejected" })}
+                      >
                         <XCircle className="h-4 w-4" /> Reject
                       </Button>
                       <Button size="sm" onClick={() => setDecision({ r, type: "approved" })}>
@@ -226,7 +250,11 @@ function AdminPage() {
                     </Button>
                   )}
                   {r.status !== "cancelled" && r.status !== "rejected" && (
-                    <Button size="sm" variant="outline" onClick={() => setDecision({ r, type: "cancelled" })}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setDecision({ r, type: "cancelled" })}
+                    >
                       <Ban className="h-4 w-4" /> Cancel
                     </Button>
                   )}

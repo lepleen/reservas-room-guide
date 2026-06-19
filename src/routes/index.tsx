@@ -21,7 +21,6 @@ export const Route = createFileRoute("/")({
 });
 
 function LandingPage() {
-
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
@@ -38,7 +37,7 @@ function LandingPage() {
           <Link to="/auth" className="text-sm text-muted-foreground hover:text-foreground">
             Creat account
           </Link>
-         <QuickLink to="/admin" icon={ShieldCheck} label="Admin review" />
+          <QuickLink to="/admin" icon={ShieldCheck} label="Admin review" />
         </div>
       </header>
 

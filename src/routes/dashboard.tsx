@@ -20,14 +20,20 @@ export const Route = createFileRoute("/dashboard")({
     ],
   }),
   component: () => (
-    <AuthGuard><DashboardPage /></AuthGuard>
+    <AuthGuard>
+      <DashboardPage />
+    </AuthGuard>
   ),
 });
 
 type Filter = "upcoming" | "past" | "all";
 
 function DashboardPage() {
-  const { data: reservations = [], isLoading: _isLoading, error: _error } = useQuery(reservationsQueryOptions());
+  const {
+    data: reservations = [],
+    isLoading: _isLoading,
+    error: _error,
+  } = useQuery(reservationsQueryOptions());
   const { roles } = useAuth();
   const isAdmin = roles.includes("admin");
   const [filter, setFilter] = useState<Filter>("upcoming");
@@ -47,9 +53,7 @@ function DashboardPage() {
     const term = q.trim().toLowerCase();
     return term
       ? byTime.filter(
-          (r) =>
-            r.eventName.toLowerCase().includes(term) ||
-            r.room.toLowerCase().includes(term),
+          (r) => r.eventName.toLowerCase().includes(term) || r.room.toLowerCase().includes(term),
         )
       : byTime;
   }, [scoped, filter, q, todayISO]);
@@ -190,7 +194,9 @@ function EmptyState() {
         Start by planning your first reservation.
       </p>
       <Button asChild className="mt-4">
-        <Link to="/reservations/new"><Plus className="h-4 w-4" /> New reservation</Link>
+        <Link to="/reservations/new">
+          <Plus className="h-4 w-4" /> New reservation
+        </Link>
       </Button>
     </div>
   );

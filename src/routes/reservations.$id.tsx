@@ -9,7 +9,11 @@ import { reservationQueryOptions } from "@/features/reservations/queries";
 import { getSetupOption } from "@/lib/reservation-options";
 
 export const Route = createFileRoute("/reservations/$id")({
-  component: () => (<AuthGuard><ReservationDetailPage /></AuthGuard>),
+  component: () => (
+    <AuthGuard>
+      <ReservationDetailPage />
+    </AuthGuard>
+  ),
 });
 
 function ReservationDetailPage() {
@@ -27,9 +31,14 @@ function ReservationDetailPage() {
   if (error || !r) {
     return (
       <AppShell>
-        <PageHeader title="Reservation not found" description={(error as Error | undefined)?.message ?? "It may have been removed."} />
+        <PageHeader
+          title="Reservation not found"
+          description={(error as Error | undefined)?.message ?? "It may have been removed."}
+        />
         <Button asChild variant="outline">
-          <Link to="/dashboard"><ArrowLeft className="h-4 w-4" /> Back to dashboard</Link>
+          <Link to="/dashboard">
+            <ArrowLeft className="h-4 w-4" /> Back to dashboard
+          </Link>
         </Button>
       </AppShell>
     );
@@ -39,7 +48,10 @@ function ReservationDetailPage() {
 
   return (
     <AppShell>
-      <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
+      <Link
+        to="/dashboard"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
+      >
         <ArrowLeft className="h-4 w-4" /> Back to dashboard
       </Link>
       <PageHeader
@@ -61,16 +73,25 @@ function ReservationDetailPage() {
         <Info icon={CalendarClock} label="When">
           {new Date(r.date + "T00:00:00").toLocaleDateString(undefined, { dateStyle: "medium" })}
           <br />
-          <span className="text-muted-foreground">{r.startTime} – {r.endTime}</span>
+          <span className="text-muted-foreground">
+            {r.startTime} – {r.endTime}
+          </span>
         </Info>
         <Info icon={MapPin} label="Where">
-          {r.room}<br />
+          {r.room}
+          <br />
           <span className="text-muted-foreground">{setup?.label ?? r.setupOptionId}</span>
         </Info>
         <Info icon={Users} label="Attendees">
-          {r.attendees}<br />
+          {r.attendees}
+          <br />
           {r.registrationRequired && r.registrationUrl ? (
-            <a className="text-primary hover:underline text-xs" href={r.registrationUrl} target="_blank" rel="noreferrer">
+            <a
+              className="text-primary hover:underline text-xs"
+              href={r.registrationUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
               Registration link
             </a>
           ) : (

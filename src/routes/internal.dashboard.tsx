@@ -18,13 +18,21 @@ export const Route = createFileRoute("/internal/dashboard")({
       { name: "description", content: "Internal team room reservations." },
     ],
   }),
-  component: () => (<AuthGuard roles={["internal", "admin"]}><InternalDashboardPage /></AuthGuard>),
+  component: () => (
+    <AuthGuard roles={["internal", "admin"]}>
+      <InternalDashboardPage />
+    </AuthGuard>
+  ),
 });
 
 type Filter = "upcoming" | "past" | "all";
 
 function InternalDashboardPage() {
-  const { data: reservations = [], isLoading: _isLoading, error: _error } = useQuery(reservationsQueryOptions());
+  const {
+    data: reservations = [],
+    isLoading: _isLoading,
+    error: _error,
+  } = useQuery(reservationsQueryOptions());
   const [filter, setFilter] = useState<Filter>("upcoming");
   const [q, setQ] = useState("");
 
@@ -42,9 +50,7 @@ function InternalDashboardPage() {
     const term = q.trim().toLowerCase();
     return term
       ? byTime.filter(
-          (r) =>
-            r.eventName.toLowerCase().includes(term) ||
-            r.room.toLowerCase().includes(term),
+          (r) => r.eventName.toLowerCase().includes(term) || r.room.toLowerCase().includes(term),
         )
       : byTime;
   }, [scoped, filter, q, todayISO]);
@@ -109,7 +115,9 @@ function InternalDashboardPage() {
             Submit your first internal reservation.
           </p>
           <Button asChild className="mt-4">
-            <Link to="/internal/reservations/new"><Plus className="h-4 w-4" /> New internal request</Link>
+            <Link to="/internal/reservations/new">
+              <Plus className="h-4 w-4" /> New internal request
+            </Link>
           </Button>
         </div>
       ) : (

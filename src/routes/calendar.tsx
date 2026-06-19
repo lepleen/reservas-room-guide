@@ -25,7 +25,11 @@ export const Route = createFileRoute("/calendar")({
 });
 
 function CalendarPage() {
-  const { data: reservations = [], isLoading: _isLoading, error: _error } = useQuery(reservationsQueryOptions());
+  const {
+    data: reservations = [],
+    isLoading: _isLoading,
+    error: _error,
+  } = useQuery(reservationsQueryOptions());
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return { y: d.getFullYear(), m: d.getMonth() };
@@ -74,7 +78,9 @@ function CalendarPage() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setCursor((c) => (c.m === 0 ? { y: c.y - 1, m: 11 } : { ...c, m: c.m - 1 }))}
+              onClick={() =>
+                setCursor((c) => (c.m === 0 ? { y: c.y - 1, m: 11 } : { ...c, m: c.m - 1 }))
+              }
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -82,7 +88,9 @@ function CalendarPage() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setCursor((c) => (c.m === 11 ? { y: c.y + 1, m: 0 } : { ...c, m: c.m + 1 }))}
+              onClick={() =>
+                setCursor((c) => (c.m === 11 ? { y: c.y + 1, m: 0 } : { ...c, m: c.m + 1 }))
+              }
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -103,7 +111,10 @@ function CalendarPage() {
       <div className="rounded-lg border border-border bg-card overflow-hidden">
         <div className="grid grid-cols-7 border-b border-border bg-secondary/40">
           {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-            <div key={d} className="px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground text-center">
+            <div
+              key={d}
+              className="px-3 py-2 text-[11px] uppercase tracking-wider text-muted-foreground text-center"
+            >
               {d}
             </div>
           ))}
@@ -155,7 +166,9 @@ function CalendarPage() {
                     </div>
                   ))}
                   {events.length > 3 && (
-                    <div className="text-[10px] text-muted-foreground">+{events.length - 3} more</div>
+                    <div className="text-[10px] text-muted-foreground">
+                      +{events.length - 3} more
+                    </div>
                   )}
                 </div>
               </button>

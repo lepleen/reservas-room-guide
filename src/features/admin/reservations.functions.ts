@@ -148,9 +148,8 @@ const patchSchema = z
 
 export const updateReservation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
-    (data: { id: string; patch: z.infer<typeof patchSchema> }) =>
-      z.object({ id: z.string().uuid(), patch: patchSchema }).parse(data),
+  .inputValidator((data: { id: string; patch: z.infer<typeof patchSchema> }) =>
+    z.object({ id: z.string().uuid(), patch: patchSchema }).parse(data),
   )
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", {
@@ -170,10 +169,7 @@ export const updateReservation = createServerFn({ method: "POST" })
     if (p.notes !== undefined) update.notes = p.notes;
     if (p.adminNotes !== undefined) update.admin_notes = p.adminNotes;
 
-    const { error } = await context.supabase
-      .from("reservations")
-      .update(update)
-      .eq("id", data.id);
+    const { error } = await context.supabase.from("reservations").update(update).eq("id", data.id);
     if (error) {
       const code = (error as { code?: string }).code;
       if (code === "23P01") {
