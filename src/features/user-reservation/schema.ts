@@ -5,7 +5,7 @@ import {
   EQUIPMENT_ITEMS,
   EVENT_TYPES,
   SETUP_OPTIONS,
-} from "./reservation-options";
+} from "@/lib/reservation-options";
 
 // Accepts Brazilian (+55 DDD + 8 or 9 digit) OR international E.164 (+ then 8–15 digits).
 const phoneRegex = /^\+(?:55\d{10,11}|\d{8,15})$/;
@@ -26,24 +26,23 @@ function isValidCnpj(raw: string): boolean {
   return d1 === Number(digits[12]) && d2 === Number(digits[13]);
 }
 
-export const cateringItemSchema = z.object({
+const cateringItemSchema = z.object({
   item: z.enum(CATERING_ITEMS as unknown as [string, ...string[]]),
   time: z.string().regex(/^\d{2}:\d{2}$/, "Time must be HH:MM"),
 });
 
-export const speakerSchema = z.object({
+const speakerSchema = z.object({
   name: z.string().trim().min(1).max(120),
   topic: z.string().trim().max(200).default(""),
 });
 
-export const scheduleItemSchema = z.object({
+const scheduleItemSchema = z.object({
   time: z.string().regex(/^\d{2}:\d{2}$/),
   action: z.string().trim().min(1).max(200),
 });
 
-export const reservationFormSchema = z
+export const userReservationSchema = z
   .object({
-    // Organizer (required for both internal & external)
     organizerName: z.string().trim().min(1, "Required").max(120),
     jobTitle: z.string().trim().min(1, "Required").max(120),
     phone: z
@@ -52,18 +51,11 @@ export const reservationFormSchema = z
       .min(1, "Required")
       .regex(phoneRegex, "Use +55DDDNNNNNNNN or international +<country><number>"),
     brand: z.string().trim().min(1, "Required").max(120),
-    cnpj: z
-      .string()
-      .trim()
-      .min(1, "Required")
-      .refine(isValidCnpj, "Invalid CNPJ"),
+    cnpj: z.string().trim().min(1, "Required").refine(isValidCnpj, "Invalid CNPJ"),
 
-    // Event
     eventName: z.string().trim().min(1, "Required").max(200),
     eventType: z.enum(EVENT_TYPES.map((e) => e.value) as unknown as [string, ...string[]]),
-    broadcastPlatform: z
-      .enum(BROADCAST_PLATFORMS as unknown as [string, ...string[]])
-      .optional(),
+    broadcastPlatform: z.enum(BROADCAST_PLATFORMS as unknown as [string, ...string[]]).optional(),
 
     setupOptionId: z
       .string()
@@ -75,23 +67,17 @@ export const reservationFormSchema = z
     endTime: z.string().regex(/^\d{2}:\d{2}$/),
     attendees: z.coerce.number().int().min(1, "At least 1 attendee"),
 
-    // Catering
     catering: z.boolean(),
     cateringItems: z.array(cateringItemSchema).default([]),
 
-    // Equipment
-    equipment: z
-      .array(z.enum(EQUIPMENT_ITEMS as unknown as [string, ...string[]]))
-      .default([]),
+    equipment: z.array(z.enum(EQUIPMENT_ITEMS as unknown as [string, ...string[]])).default([]),
 
-    // Speakers / AV
     hasInPersonSpeakers: z.boolean(),
     speakers: z.array(speakerSchema).default([]),
     recording: z.boolean(),
     microphoneType: z.enum(["handheld", "lavalier", "headset", "podium"]).optional(),
     ledColor: z.string().optional(),
 
-    // Registration & schedule
     registrationRequired: z.boolean(),
     registrationUrl: z.string().url("Must be a URL").optional().or(z.literal("")),
     schedule: z.array(scheduleItemSchema).default([]),
@@ -99,18 +85,10 @@ export const reservationFormSchema = z
   })
   .superRefine((v, ctx) => {
     if (v.startTime >= v.endTime) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "End time must be after start time",
-        path: ["endTime"],
-      });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "End time must be after start time", path: ["endTime"] });
     }
     if (v.eventType === "live_broadcast" && !v.broadcastPlatform) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Pick a platform",
-        path: ["broadcastPlatform"],
-      });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Pick a platform", path: ["broadcastPlatform"] });
     }
     if (v.catering && v.cateringItems.length === 0) {
       ctx.addIssue({
@@ -121,9 +99,9 @@ export const reservationFormSchema = z
     }
   });
 
-export type ReservationFormValues = z.infer<typeof reservationFormSchema>;
+export type UserReservationValues = z.infer<typeof userReservationSchema>;
 
-export const defaultReservationValues: ReservationFormValues = {
+export const defaultUserReservationValues: UserReservationValues = {
   organizerName: "",
   jobTitle: "",
   phone: "",

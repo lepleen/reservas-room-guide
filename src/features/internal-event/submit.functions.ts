@@ -1,21 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { reservationFormSchema, type ReservationFormValues } from "./reservation-schema";
-import { getSetupOption } from "./reservation-options";
+import { internalEventSchema, type InternalEventValues } from "./schema";
+import { getSetupOption } from "@/lib/reservation-options";
 
-type CreateInput = {
-  kind: "user" | "internal";
-  values: ReservationFormValues;
-};
-
-export const createReservation = createServerFn({ method: "POST" })
+export const createInternalEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: CreateInput) => ({
-    kind: data.kind === "internal" ? "internal" : "user",
-    values: reservationFormSchema.parse(data.values),
+  .inputValidator((data: { values: InternalEventValues }) => ({
+    values: internalEventSchema.parse(data.values),
   }))
   .handler(async ({ data, context }) => {
-    const { values, kind } = data;
+    const { values } = data;
     const setup = getSetupOption(values.setupOptionId);
     if (!setup) throw new Error("Invalid setup option");
 
@@ -23,19 +17,16 @@ export const createReservation = createServerFn({ method: "POST" })
       .from("reservations")
       .insert({
         owner_id: context.userId,
-        kind,
+        kind: "internal",
         status: "pending",
-
         organizer_name: values.organizerName,
         job_title: values.jobTitle,
         phone: values.phone,
         brand: values.brand,
         cnpj: values.cnpj,
-
         event_name: values.eventName,
         event_type: values.eventType,
         broadcast_platform: values.broadcastPlatform ?? null,
-
         date: values.date,
         start_time: values.startTime,
         end_time: values.endTime,
@@ -43,13 +34,11 @@ export const createReservation = createServerFn({ method: "POST" })
         setup_option_id: values.setupOptionId,
         room: setup.room,
         max_capacity: setup.capacity,
-
         catering: values.catering,
         catering_items: values.catering ? values.cateringItems : [],
         equipment: values.equipment,
         speakers: values.hasInPersonSpeakers ? values.speakers : [],
         schedule: values.schedule,
-
         has_in_person_speakers: values.hasInPersonSpeakers,
         recording: values.recording,
         microphone_type: values.microphoneType ?? null,

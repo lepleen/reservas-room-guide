@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { AuthGuard } from "@/components/AuthGuard";
-import { ReservationForm } from "@/components/ReservationForm";
+import { UserReservationForm } from "@/features/user-reservation/UserReservationForm";
 
 export const Route = createFileRoute("/reservations/new")({
   head: () => ({
@@ -24,7 +24,7 @@ function NewReservationPage() {
         title="New reservation"
         description="Capture everything needed for a smooth event."
       />
-      <ReservationForm mode="external" />
+      <UserReservationForm />
     </AppShell>
   );
 }

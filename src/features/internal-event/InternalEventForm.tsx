@@ -16,7 +16,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
-import { reservationFormSchema, defaultReservationValues, type ReservationFormValues } from "@/lib/reservation-schema";
+import {
+  internalEventSchema,
+  defaultInternalEventValues,
+  type InternalEventValues,
+} from "./schema";
 import {
   SETUP_OPTIONS,
   getSetupOption,
@@ -25,20 +29,16 @@ import {
   CATERING_ITEMS,
   EQUIPMENT_ITEMS,
 } from "@/lib/reservation-options";
-import { createReservation } from "@/lib/reservations.functions";
+import { createInternalEvent } from "./submit.functions";
 
-type Props = {
-  mode: "external" | "internal";
-};
-
-export function ReservationForm({ mode }: Props) {
+export function InternalEventForm() {
   const navigate = useNavigate();
-  const submitFn = useServerFn(createReservation);
+  const submitFn = useServerFn(createInternalEvent);
 
-  const form = useForm<ReservationFormValues>({
+  const form = useForm<InternalEventValues>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(reservationFormSchema) as any,
-    defaultValues: defaultReservationValues as ReservationFormValues,
+    resolver: zodResolver(internalEventSchema) as any,
+    defaultValues: defaultInternalEventValues as InternalEventValues,
     mode: "onBlur",
   });
 
@@ -51,20 +51,13 @@ export function ReservationForm({ mode }: Props) {
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       if (authBypass) {
-        // No real session — skip persistence and go to the dashboard.
         toast.success("Reservation captured (auth bypass — not persisted)");
-        navigate({ to: mode === "internal" ? "/internal/dashboard" : "/dashboard" });
+        navigate({ to: "/internal/dashboard" });
         return;
       }
-      const res = await submitFn({
-        data: { kind: mode === "internal" ? "internal" : "user", values },
-      });
+      const res = await submitFn({ data: { values } });
       toast.success("Reservation submitted for review");
-      if (mode === "internal") {
-        navigate({ to: "/internal/reservations/$id", params: { id: res.id } });
-      } else {
-        navigate({ to: "/reservations/$id", params: { id: res.id } });
-      }
+      navigate({ to: "/internal/reservations/$id", params: { id: res.id } });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to submit reservation";
       toast.error(msg);
@@ -73,7 +66,6 @@ export function ReservationForm({ mode }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-10 max-w-3xl">
-      {/* ORGANIZER */}
       <Section title="Organizer" description="Who is responsible for this event.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Responsible organizer *" error={form.formState.errors.organizerName?.message}>
@@ -98,7 +90,6 @@ export function ReservationForm({ mode }: Props) {
         </div>
       </Section>
 
-      {/* EVENT BASICS */}
       <Section title="Event basics" description="Essentials about the event.">
         <Field label="Event name *" error={form.formState.errors.eventName?.message}>
           <Input {...form.register("eventName")} placeholder="All-hands Q3" />
@@ -151,20 +142,13 @@ export function ReservationForm({ mode }: Props) {
         )}
       </Section>
 
-      {/* EVENT TYPE */}
       <Section title="Event type" description="How the event will be delivered.">
         <RadioGroup
           value={v.eventType}
           onValueChange={(val) => {
-            form.setValue("eventType", val as ReservationFormValues["eventType"], {
-              shouldValidate: true,
-            });
-            if (val !== "live_broadcast") {
-              form.setValue("broadcastPlatform", undefined);
-            }
-            if (val === "recorded") {
-              form.setValue("recording", true);
-            }
+            form.setValue("eventType", val as InternalEventValues["eventType"], { shouldValidate: true });
+            if (val !== "live_broadcast") form.setValue("broadcastPlatform", undefined);
+            if (val === "recorded") form.setValue("recording", true);
           }}
           className="grid gap-2"
         >
@@ -184,7 +168,7 @@ export function ReservationForm({ mode }: Props) {
             <Select
               value={v.broadcastPlatform ?? ""}
               onValueChange={(val) =>
-                form.setValue("broadcastPlatform", val as ReservationFormValues["broadcastPlatform"], {
+                form.setValue("broadcastPlatform", val as InternalEventValues["broadcastPlatform"], {
                   shouldValidate: true,
                 })
               }
@@ -204,7 +188,6 @@ export function ReservationForm({ mode }: Props) {
         )}
       </Section>
 
-      {/* CATERING */}
       <Section title="Catering" description="Optional food & drink.">
         <RadioGroup
           value={v.catering ? "yes" : "no"}
@@ -293,7 +276,6 @@ export function ReservationForm({ mode }: Props) {
         )}
       </Section>
 
-      {/* SPEAKERS */}
       <Section title="Speakers" description="In-person presenters.">
         <Toggle
           label="In-person speakers"
@@ -349,14 +331,15 @@ export function ReservationForm({ mode }: Props) {
         )}
       </Section>
 
-      {/* AV */}
       <Section title="AV" description="Microphone & accents.">
         <Toggle label="Record the event" checked={v.recording} onChange={(val) => form.setValue("recording", val)} />
         <div className="grid grid-cols-2 gap-3">
           <Field label="Microphone type">
             <Select
               value={v.microphoneType ?? "handheld"}
-              onValueChange={(val) => form.setValue("microphoneType", val as ReservationFormValues["microphoneType"])}
+              onValueChange={(val) =>
+                form.setValue("microphoneType", val as InternalEventValues["microphoneType"])
+              }
             >
               <SelectTrigger>
                 <SelectValue />
@@ -382,7 +365,7 @@ export function ReservationForm({ mode }: Props) {
           </Field>
         </div>
       </Section>
-      {/* EQUIPMENT */}
+
       <Section title="Additional equipment" description="Optional add-ons.">
         <Alert>
           <AlertTriangle className="h-4 w-4" />
@@ -410,7 +393,6 @@ export function ReservationForm({ mode }: Props) {
         </div>
       </Section>
 
-      {/* REGISTRATION */}
       <Section title="Registration" description="Track attendee sign-ups.">
         <Toggle
           label="Registration required"
@@ -424,7 +406,6 @@ export function ReservationForm({ mode }: Props) {
         )}
       </Section>
 
-      {/* SCHEDULE */}
       <Section title="Schedule" description="Plan the run-of-show.">
         <div className="space-y-2">
           {v.schedule.map((s, i) => (
@@ -473,17 +454,12 @@ export function ReservationForm({ mode }: Props) {
         </div>
       </Section>
 
-      {/* NOTES */}
       <Section title="Notes" description="Anything else the team should know.">
         <Textarea rows={4} {...form.register("notes")} placeholder="Special requirements…" />
       </Section>
 
       <div className="flex justify-end gap-3 pt-2 border-t border-border">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => navigate({ to: mode === "internal" ? "/internal/dashboard" : "/dashboard" })}
-        >
+        <Button type="button" variant="ghost" onClick={() => navigate({ to: "/internal/dashboard" })}>
           Cancel
         </Button>
         <Button type="submit" disabled={form.formState.isSubmitting}>
