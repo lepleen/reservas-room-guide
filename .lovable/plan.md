@@ -1,124 +1,72 @@
+# Decouple User Reservation and Internal Events forms
 
-# Reservation Forms Update — Implementation Plan
+## Current architecture (shared today)
 
-Covers `/reservations/new` (external) and `/internal/reservations/new` (internal). Both forms behave identically except for the route + AuthGuard. All shared logic is extracted into reusable pieces.
+Both `/reservations/new` and `/internal/reservations/new` route to the same building blocks:
 
-## 1. Data model (single source of truth)
+- `src/components/ReservationForm.tsx` — single component, switched only by a `mode: "external" | "internal"` prop
+- `src/lib/reservation-schema.ts` — single Zod schema, `ReservationFormValues` type, `defaultReservationValues`
+- `src/lib/reservation-options.ts` — setup options, event types, broadcast platforms, catering, equipment (shared catalogs)
+- `src/lib/reservations.functions.ts` — single `createReservation` server function, branches on `kind: "user" | "internal"`
+- Backend: a single `public.reservations` table with a `kind` column already separates the two flows
 
-New module `src/lib/reservation-options.ts` exports:
+Result: any field/validation/UI change on one form automatically lands on the other. This is what we need to break.
 
-- `SETUP_OPTIONS` — array of `{ id, label, room, capacity | null }`. The room is derived from the option (answer 1c). Duplicate "Lab Layout – 7 table sets" removed. Items without a defined capacity store `capacity: null` and render as "Undefined" (answer 2).
-- `ROOMS` — derived `Array.from(new Set(SETUP_OPTIONS.map(o => o.room)))`. This replaces the static `ROOMS` list in `src/lib/store.tsx` for the new forms; existing seed data keeps working because `findConflicts` matches by string.
-- `EVENT_TYPES = ["in_person", "live_broadcast", "recorded"]`.
-- `BROADCAST_PLATFORMS = ["YouTube", "Microsoft Teams", "Zoom"]` (single-select, answer 3).
-- `CATERING_ITEMS` — fixed list of items the user toggles + assigns a time to.
-- `EQUIPMENT_ITEMS` — fixed list for the additional-equipment checklist.
+## Architectural note (worth flagging before we start)
 
-## 2. Shared form component
+`reservation-options.ts` (setup styles, rooms, catering items, equipment list, broadcast platforms) is **catalog data**, not business logic. The acceptance criteria say "adding a field to one form must not affect the other" — that's about form fields, not about which rooms exist. I recommend keeping these catalogs shared. If the user later wants different catalogs per flow (e.g. internal-only equipment), we can fork them then. **Confirm if you'd rather fork the catalogs now.**
 
-New `src/components/ReservationForm.tsx`:
+The `reservations` DB table is also shared (distinguished by `kind`). Splitting it into two tables is a much larger change with data-migration implications — out of scope for this refactor unless you explicitly ask.
 
-- Accepts `mode: "external" | "internal"` and `onSubmit`.
-- Sections: Organizer → Event basics → Setup & Room → Event type → Catering → Additional equipment → Speakers → Schedule → Notes.
-- Setup style is the primary control; selecting it auto-fills `room` and shows `Maximum capacity: N` or `Undefined`. The standalone Room selector is removed (answer 1c). Conflict detection uses the derived `room` string, so `findConflicts` is unchanged.
-- Event type is a radio group. Selecting `live_broadcast` reveals a single-select platform dropdown. Selecting `recorded` only flags the event as recorded — Room, Schedule, and Catering stay visible (answer 3; the user did not request hiding them — flagged as assumption).
-- Catering Yes/No. When toggled to No, the catering items + times are cleared from state (answer 10). `cateringNotes` removed (answer 4).
-- Additional equipment renders an informational `Alert` about possible extra costs; no pricing logic (answer 9).
-
-## 3. Organizer block & validation (zod)
-
-`src/lib/reservation-schema.ts` with one zod schema used by both forms:
-
-- Required for everyone: `organizerName`, `jobTitle`, `phone`, `brand`, `cnpj` (answer 5, 7).
-- `phone`: accepts Brazilian format (`+55` + DDD + 8/9 digits) **and** international E.164 (`+<country><number>`, 8–15 digits) via a single regex (answer 6).
-- `cnpj`: 14 digits, mask-formatted in the UI, validated with the standard CNPJ check-digit algorithm.
-- `brand`: 1–120 chars, trimmed.
-- Submit button disabled until schema passes; inline errors via existing `Form`/`FormMessage` shadcn components.
-
-## 4. Both route files
-
-`src/routes/reservations.new.tsx` and `src/routes/internal.reservations.new.tsx` become thin wrappers:
-
-```tsx
-<AuthGuard ...>
-  <ReservationForm mode="external" onSubmit={...} />
-</AuthGuard>
-```
-
-The internal version keeps `roles={["internal","admin"]}` and posts with `kind: "internal"`.
-
-## 5. Persistence — Supabase migration
-
-Current store is `localStorage` only. Migration creates persistent storage in the `eu Org` project (answer 8).
-
-New table `public.reservations`:
+## Target structure
 
 ```text
-id uuid pk
-owner_id uuid -> auth.users (nullable for legacy/guest)
-kind text ('user'|'internal')
-status text ('pending'|'approved'|'rejected') default 'pending'
-
-# organizer
-organizer_name text not null
-job_title text not null
-phone text not null
-brand text not null
-cnpj text not null
-
-# event
-event_name text not null
-event_type text not null         -- in_person|live_broadcast|recorded
-broadcast_platform text          -- nullable, one of fixed list
-date date not null
-start_time time not null
-end_time time not null
-attendees int not null
-setup_option_id text not null    -- references SETUP_OPTIONS.id
-room text not null               -- denormalized for conflict queries
-max_capacity int                 -- nullable when "Undefined"
-
-# misc
-catering boolean not null default false
-catering_items jsonb not null default '[]'   -- [{item, time}]
-equipment jsonb not null default '[]'
-speakers jsonb not null default '[]'
-schedule jsonb not null default '[]'
-has_in_person_speakers boolean not null default false
-recording boolean not null default false
-microphone_type text
-led_color text
-registration_required boolean not null default false
-registration_url text
-notes text
-
-admin_notes text
-reviewed_at timestamptz
-created_at timestamptz not null default now()
-updated_at timestamptz not null default now()
+src/features/
+├── user-reservation/
+│   ├── UserReservationForm.tsx        // own component, own RHF state
+│   ├── schema.ts                      // own Zod schema + type + defaults
+│   └── submit.functions.ts            // own createUserReservation server fn
+└── internal-event/
+    ├── InternalEventForm.tsx
+    ├── schema.ts
+    └── submit.functions.ts
 ```
 
-Plus: `GRANT` block for `authenticated`/`service_role`, `ENABLE ROW LEVEL SECURITY`, and policies:
-- Users read/insert/update their own rows (`auth.uid() = owner_id`).
-- Admins (`has_role(auth.uid(), 'admin')`) read/update/delete all.
-- Internal role can read all internal-kind rows.
-- `updated_at` trigger via existing `update_updated_at_column()`.
+Shared (unchanged): `src/components/ui/*`, `AppShell`, `PageHeader`, `AuthGuard`, `reservation-options.ts` (catalogs), generic helpers.
 
-**Migration strategy (your question 8):** the existing reservations live only in `localStorage`, so no production data is at risk. The migration is purely additive — it creates a new table, leaves the local `useStore` intact, and the new forms write to Supabase. A small bridge in `useStore` keeps reading from `localStorage` for the legacy seed/list pages until they are migrated in a follow-up. No destructive SQL, no `DROP`. If you later want to backfill local data, we can ship a one-shot client-side "Send my drafts to the cloud" action — out of scope for this change.
+Deleted after migration: `src/components/ReservationForm.tsx`, `src/lib/reservation-schema.ts`, `src/lib/reservations.functions.ts`.
 
-## 6. Server function for inserts
+## Steps
 
-`src/lib/reservations.functions.ts` — `createServerFn({ method: "POST" })` with `requireSupabaseAuth`, zod-validates input, inserts the row with `owner_id = context.userId`. The forms call it via `useServerFn` inside the submit handler, then navigate to the existing detail route. Listing/detail pages keep current local-store reads in this change to limit blast radius.
+1. **Create `user-reservation/`**
+   - `schema.ts`: copy the current Zod schema as `userReservationSchema`, export `UserReservationValues` + `defaultUserReservationValues`.
+   - `UserReservationForm.tsx`: copy current `ReservationForm.tsx`, drop the `mode` prop, hardwire external navigation targets (`/dashboard`, `/reservations/$id`).
+   - `submit.functions.ts`: `createUserReservation` server fn — same auth middleware, hardcodes `kind: "user"` in the insert.
 
-## 7. Open assumption to confirm during build
+2. **Create `internal-event/`** — mirror of the above:
+   - `InternalEventForm.tsx` navigates to `/internal/dashboard` and `/internal/reservations/$id`.
+   - `createInternalEvent` server fn hardcodes `kind: "internal"`.
+   - Identical fields for now (matches current behavior); future divergence is now safe.
 
-You didn't specify whether picking "Recorded" should hide Room / Schedule / Catering. I will keep them visible (flagged as a flag we can flip in one line). Tell me before I start if you want them hidden.
+3. **Update routes**
+   - `src/routes/reservations.new.tsx` → render `<UserReservationForm />`.
+   - `src/routes/internal.reservations.new.tsx` → render `<InternalEventForm />`.
 
-## Final checklist (will be verified)
+4. **Remove the shared modules**
+   - Delete `src/components/ReservationForm.tsx`, `src/lib/reservation-schema.ts`, `src/lib/reservations.functions.ts` once nothing imports them.
+   - Grep first to confirm no other route/component still imports the old paths.
 
-- No TS errors; both routes typecheck.
-- Responsive grid preserved (same `Section` layout as today).
-- All required fields enforced via zod with inline errors.
-- New fields persisted to `public.reservations`.
-- External and internal forms render the same component with only `mode` differing.
-- Reuses existing shadcn primitives (`Form`, `Input`, `Select`, `RadioGroup`, `Checkbox`, `Alert`, `Switch`).
+5. **Verification**
+   - Typecheck clean.
+   - Both routes render and submit (auth-bypass path still works on both).
+   - Adding a throwaway field to `user-reservation/schema.ts` does NOT touch the internal form — quick smoke check, then revert.
+
+## Out of scope
+
+- DB schema split (still one `reservations` table, `kind` column).
+- Catalog split in `reservation-options.ts` (unless you say otherwise).
+- Visual redesign — pure structural refactor; markup stays identical.
+
+## Question before I implement
+
+Fork `reservation-options.ts` (catalogs) per flow too, or keep it shared? Default plan is **keep shared**.
