@@ -352,7 +352,7 @@ export function UserReservationForm() {
               </SelectContent>
             </Select>
           </Field>
-          <Field label="LED accent color">
+          {/* <Field label="LED accent color">
             <div className="flex items-center gap-2">
               <input
                 type="color"
@@ -362,7 +362,7 @@ export function UserReservationForm() {
               />
               <Input value={v.ledColor ?? ""} onChange={(e) => form.setValue("ledColor", e.target.value)} />
             </div>
-          </Field>
+          </Field> */}
         </div>
       </Section>
 
