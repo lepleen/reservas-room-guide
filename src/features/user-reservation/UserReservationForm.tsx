@@ -30,6 +30,8 @@ import {
   EQUIPMENT_ITEMS,
 } from "@/lib/reservation-options";
 import { createUserReservation } from "./submit.functions";
+import { useAvailability } from "@/features/shared/useAvailability";
+import { AvailabilityStatus } from "@/features/shared/AvailabilityStatus";
 
 export function UserReservationForm() {
   const navigate = useNavigate();
@@ -47,6 +49,16 @@ export function UserReservationForm() {
   const overCapacity = setup?.capacity != null && v.attendees > setup.capacity;
 
   const authBypass = import.meta.env.VITE_AUTH_BYPASS === "true";
+
+  const availability = useAvailability({
+    room: setup?.room,
+    date: v.date,
+    startTime: v.startTime,
+    endTime: v.endTime,
+  });
+  const availabilityEnabled =
+    !authBypass && Boolean(setup?.room) && Boolean(v.date) && v.startTime < v.endTime;
+  const hasConflict = (availability.data?.conflicts.length ?? 0) > 0;
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -130,6 +142,17 @@ export function UserReservationForm() {
             <Input type="time" {...form.register("endTime")} />
           </Field>
         </div>
+
+        <AvailabilityStatus
+          query={availability}
+          enabled={availabilityEnabled}
+          payload={
+            setup?.room
+              ? { room: setup.room, date: v.date, startTime: v.startTime, endTime: v.endTime }
+              : null
+          }
+        />
+
 
         <Field label="Attendees" error={form.formState.errors.attendees?.message}>
           <Input type="number" min={1} {...form.register("attendees", { valueAsNumber: true })} />
@@ -462,7 +485,7 @@ export function UserReservationForm() {
         <Button type="button" variant="ghost" onClick={() => navigate({ to: "/dashboard" })}>
           Cancel
         </Button>
-        <Button type="submit" disabled={form.formState.isSubmitting}>
+        <Button type="submit" disabled={form.formState.isSubmitting || hasConflict || availability.isFetching}>
           {form.formState.isSubmitting ? "Submitting…" : "Submit reservation"}
         </Button>
       </div>
