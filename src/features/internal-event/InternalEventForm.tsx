@@ -36,6 +36,7 @@ import { AvailabilityStatus } from "@/features/shared/AvailabilityStatus";
 
 export function InternalEventForm() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const submitFn = useServerFn(createInternalEvent);
 
   const form = useForm<InternalEventValues>({
