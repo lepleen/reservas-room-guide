@@ -66,7 +66,7 @@ export function InternalEventForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-10 max-w-3xl">
-      <Section title="Organizer" description="Who is responsible for this event.">
+      {/* <Section title="Organizer" description="Who is responsible for this event.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Responsible organizer *" error={form.formState.errors.organizerName?.message}>
             <Input {...form.register("organizerName")} placeholder="Jane Doe" />
@@ -88,7 +88,7 @@ export function InternalEventForm() {
             <Input {...form.register("cnpj")} placeholder="12.345.678/0001-95" />
           </Field>
         </div>
-      </Section>
+      </Section> */}
 
       <Section title="Event basics" description="Essentials about the event.">
         <Field label="Event name *" error={form.formState.errors.eventName?.message}>
@@ -352,7 +352,7 @@ export function InternalEventForm() {
               </SelectContent>
             </Select>
           </Field>
-          <Field label="LED accent color">
+          {/* <Field label="LED accent color">
             <div className="flex items-center gap-2">
               <input
                 type="color"
@@ -362,15 +362,12 @@ export function InternalEventForm() {
               />
               <Input value={v.ledColor ?? ""} onChange={(e) => form.setValue("ledColor", e.target.value)} />
             </div>
-          </Field>
+          </Field> */}
         </div>
       </Section>
 
       <Section title="Additional equipment" description="Optional add-ons.">
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>Additional equipment may generate extra costs.</AlertDescription>
-        </Alert>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {EQUIPMENT_ITEMS.map((item) => {
             const checked = v.equipment.includes(item);
@@ -391,6 +388,10 @@ export function InternalEventForm() {
             );
           })}
         </div>
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>Additional equipment may generate extra costs.</AlertDescription>
+        </Alert>
       </Section>
 
       <Section title="Registration" description="Track attendee sign-ups.">

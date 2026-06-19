@@ -7,9 +7,15 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Roomr — Event reservations made simple" },
-      { name: "description", content: "Plan rooms, AV, schedules, and registrations in one minimalist workspace." },
+      {
+        name: "description",
+        content: "Plan rooms, AV, schedules, and registrations in one minimalist workspace.",
+      },
       { property: "og:title", content: "Roomr — Event reservations" },
-      { property: "og:description", content: "Plan rooms, AV, schedules, and registrations in one place." },
+      {
+        property: "og:description",
+        content: "Plan rooms, AV, schedules, and registrations in one place.",
+      },
     ],
   }),
   component: LandingPage,
@@ -29,9 +35,10 @@ function LandingPage() {
             </div>
             <span className="text-sm font-semibold tracking-tight">Roomr</span>
           </Link>
-          <Link to="/signin" className="text-sm text-muted-foreground hover:text-foreground">
+          {/* <Link to="/signin" className="text-sm text-muted-foreground hover:text-foreground">
             Sign in
-          </Link>
+          </Link> */}
+           <QuickLink to="/admin" icon={ShieldCheck} label="Admin review" />
         </div>
       </header>
 
@@ -43,8 +50,8 @@ function LandingPage() {
           Get it approved fast.
         </h1>
         <p className="mt-5 text-base text-muted-foreground max-w-xl mx-auto">
-          Submit room reservation requests with rooms, AV, catering, schedules and speakers. Administrators review and
-          decide — no accounts required to explore.
+          Submit room reservation requests with rooms, AV, catering, schedules and speakers.
+          Administrators review and decide — no accounts required to explore.
         </p>
       </section>
 
@@ -79,10 +86,10 @@ function LandingPage() {
       </section>
 
       <section className="mx-auto max-w-5xl px-6 pb-24 grid sm:grid-cols-4 gap-3">
-        <QuickLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
+        {/* <QuickLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
         <QuickLink to="/reservations/new" icon={Plus} label="New reservation" />
         <QuickLink to="/internal/dashboard" icon={Building2} label="Internal panel" />
-        <QuickLink to="/admin" icon={ShieldCheck} label="Admin review" />
+        <QuickLink to="/admin" icon={ShieldCheck} label="Admin review" /> */}
       </section>
     </div>
   );
