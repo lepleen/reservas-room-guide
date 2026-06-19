@@ -70,6 +70,7 @@ export function InternalEventForm() {
         return;
       }
       const res = await submitFn({ data: { values } });
+      await queryClient.invalidateQueries({ queryKey: ["reservations"] });
       toast.success("Reservation submitted for review");
       navigate({ to: "/internal/reservations/$id", params: { id: res.id } });
     } catch (err) {
