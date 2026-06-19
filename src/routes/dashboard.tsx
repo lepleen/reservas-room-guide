@@ -19,17 +19,6 @@ export const Route = createFileRoute("/dashboard")({
       { name: "description", content: "Your upcoming and past room reservations." },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(reservationsQueryOptions()),
-  errorComponent: ({ error }) => (
-    <AppShell>
-      <PageHeader title="Couldn't load reservations" description={error.message} />
-    </AppShell>
-  ),
-  notFoundComponent: () => (
-    <AppShell>
-      <PageHeader title="Not found" />
-    </AppShell>
-  ),
   component: () => (
     <AuthGuard><DashboardPage /></AuthGuard>
   ),

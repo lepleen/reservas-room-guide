@@ -9,18 +9,6 @@ import { reservationQueryOptions } from "@/features/reservations/queries";
 import { getSetupOption } from "@/lib/reservation-options";
 
 export const Route = createFileRoute("/reservations/$id")({
-  loader: ({ context, params }) =>
-    context.queryClient.ensureQueryData(reservationQueryOptions(params.id)),
-  errorComponent: ({ error }) => (
-    <AppShell>
-      <PageHeader title="Couldn't load reservation" description={error.message} />
-    </AppShell>
-  ),
-  notFoundComponent: () => (
-    <AppShell>
-      <PageHeader title="Reservation not found" />
-    </AppShell>
-  ),
   component: () => (<AuthGuard><ReservationDetailPage /></AuthGuard>),
 });
 

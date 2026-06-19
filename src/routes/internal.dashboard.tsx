@@ -18,17 +18,6 @@ export const Route = createFileRoute("/internal/dashboard")({
       { name: "description", content: "Internal team room reservations." },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(reservationsQueryOptions()),
-  errorComponent: ({ error }) => (
-    <AppShell>
-      <PageHeader title="Couldn't load reservations" description={error.message} />
-    </AppShell>
-  ),
-  notFoundComponent: () => (
-    <AppShell>
-      <PageHeader title="Not found" />
-    </AppShell>
-  ),
   component: () => (<AuthGuard roles={["internal", "admin"]}><InternalDashboardPage /></AuthGuard>),
 });
 

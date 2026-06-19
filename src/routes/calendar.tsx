@@ -17,17 +17,6 @@ export const Route = createFileRoute("/calendar")({
       { name: "description", content: "Month view of every room reservation." },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(reservationsQueryOptions()),
-  errorComponent: ({ error }) => (
-    <AppShell>
-      <PageHeader title="Couldn't load reservations" description={error.message} />
-    </AppShell>
-  ),
-  notFoundComponent: () => (
-    <AppShell>
-      <PageHeader title="Not found" />
-    </AppShell>
-  ),
   component: () => (
     <AuthGuard>
       <CalendarPage />
