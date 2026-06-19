@@ -29,18 +29,6 @@ export const Route = createFileRoute("/admin")({
       { name: "description", content: "Review and decide on submitted reservation requests." },
     ],
   }),
-  loader: ({ context }) =>
-    context.queryClient.ensureQueryData(reservationsQueryOptions()),
-  errorComponent: ({ error }) => (
-    <AppShell>
-      <PageHeader title="Couldn't load reservations" description={error.message} />
-    </AppShell>
-  ),
-  notFoundComponent: () => (
-    <AppShell>
-      <PageHeader title="Not found" />
-    </AppShell>
-  ),
   component: () => (
     <AuthGuard roles={["admin"]}>
       <AdminPage />
