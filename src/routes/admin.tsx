@@ -54,7 +54,7 @@ function findOverlaps(rows: ReservationDTO[], r: ReservationDTO) {
 }
 
 function AdminPage() {
-  const { data: reservations } = useSuspenseQuery(reservationsQueryOptions());
+  const { data: reservations = [], isLoading, error } = useQuery(reservationsQueryOptions());
   const queryClient = useQueryClient();
   const updateStatus = useServerFn(updateReservationStatus);
 
