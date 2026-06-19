@@ -71,6 +71,13 @@ export const createInternalEvent = createServerFn({ method: "POST" })
       .select("id")
       .single();
 
-    if (error) throw new Error(error.message);
-    return { id: row.id as string };
+    if (error) {
+      // Postgres exclusion constraint violation = concurrent overlapping insert
+      const code = (error as { code?: string }).code;
+      if (code === "23P01") {
+        throw new Error("This time slot was just booked by someone else. Please pick another time.");
+      }
+      throw new Error(error.message);
+    }
+    return { id: row!.id as string };
   });
