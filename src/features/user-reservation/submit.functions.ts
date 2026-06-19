@@ -73,9 +73,29 @@ export const createUserReservation = createServerFn({ method: "POST" })
     if (error) {
       const code = (error as { code?: string }).code;
       if (code === "23P01") {
-        throw new Error("This time slot was just booked by someone else. Please pick another time.");
+        // Concurrent overlap rejected by the GIST exclusion constraint.
+        throw new RoomUnavailableError([]);
       }
       throw new Error(error.message);
     }
+    return { id: row!.id as string };
+  });
+
+// Map the SQL `find_conflicts` row shape into the wire DTO.
+function toAvailabilityConflicts(rows: Array<{
+  id: string;
+  event_name: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+}>): AvailabilityConflict[] {
+  return rows.map((r) => ({
+    id: r.id,
+    eventName: r.event_name,
+    startTime: String(r.start_time).slice(0, 5),
+    endTime: String(r.end_time).slice(0, 5),
+    status: r.status,
+  }));
+}
     return { id: row!.id as string };
   });
