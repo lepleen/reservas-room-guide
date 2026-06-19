@@ -41,9 +41,9 @@ function AuthPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<"signin" | "signup">("signin");
 
-  useEffect(() => {
-    if (!loading && isAuthenticated) navigate({ to: "/dashboard" });
-  }, [loading, isAuthenticated, navigate]);
+  // useEffect(() => {
+  //   if (!loading && isAuthenticated) navigate({ to: "/dashboard" });
+  // }, [loading, isAuthenticated, navigate]);
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">

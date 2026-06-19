@@ -35,10 +35,13 @@ function LandingPage() {
             </div>
             <span className="text-sm font-semibold tracking-tight">Roomr</span>
           </Link>
-          {/* <Link to="/signin" className="text-sm text-muted-foreground hover:text-foreground">
+          <Link to="/signin" className="text-sm text-muted-foreground hover:text-foreground">
             Sign in
-          </Link> */}
-           <QuickLink to="/admin" icon={ShieldCheck} label="Admin review" />
+          </Link>
+          <Link to="/auth" className="text-sm text-muted-foreground hover:text-foreground">
+            Creat account
+          </Link>
+         <QuickLink to="/admin" icon={ShieldCheck} label="Admin review" />
         </div>
       </header>
 
@@ -46,7 +49,6 @@ function LandingPage() {
         <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Event operations</p>
         <h1 className="mt-4 text-4xl md:text-5xl font-semibold tracking-tight leading-[1.1]">
           Estou atualizando o projeto diariamente, fique a vontade para me enviar feedbacks.
-          🫰
           <br />
         </h1>
         <p className="mt-5 text-base text-muted-foreground max-w-xl mx-auto">
@@ -60,7 +62,7 @@ function LandingPage() {
           icon={UserRound}
           title="I'm a user"
           description="Browse events, fill the reservation form, and submit a request to the administrator."
-          cta="Continue as user"
+          cta="User"
           to="/dashboard"
           onClick={() => setRole("user")}
         />
@@ -68,7 +70,7 @@ function LandingPage() {
           icon={Building2}
           title="I'm an internal user"
           description="Submit room requests on behalf of internal teams in a fully separated workspace."
-          cta="Open internal panel"
+          cta="Internal user"
           to="/internal/dashboard"
           onClick={() => setRole("internal")}
         />
