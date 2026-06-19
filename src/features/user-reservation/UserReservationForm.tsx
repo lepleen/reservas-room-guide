@@ -185,15 +185,7 @@ export function UserReservationForm() {
           </Field>
         </div>
 
-        <AvailabilityStatus
-          query={availability}
-          enabled={availabilityEnabled}
-          payload={
-            setup?.room
-              ? { room: setup.room, date: v.date, startTime: v.startTime, endTime: v.endTime }
-              : null
-          }
-        />
+        <AvailabilityStatus query={availability} enabled={availabilityEnabled} />
 
 
         <Field label="Attendees" error={form.formState.errors.attendees?.message}>
