@@ -16,10 +16,18 @@ function InternalReservationDetailPage() {
   const { id } = Route.useParams();
   const { data: r, isLoading, error } = useQuery(reservationQueryOptions(id));
 
-  if (!r) {
+  if (isLoading) {
     return (
       <AppShell>
-        <PageHeader title="Reservation not found" description="It may have been removed." />
+        <PageHeader title="Loading…" />
+      </AppShell>
+    );
+  }
+
+  if (error || !r) {
+    return (
+      <AppShell>
+        <PageHeader title="Reservation not found" description={(error as Error | undefined)?.message ?? "It may have been removed."} />
         <Button asChild variant="outline">
           <Link to="/internal/dashboard"><ArrowLeft className="h-4 w-4" /> Back to internal dashboard</Link>
         </Button>
