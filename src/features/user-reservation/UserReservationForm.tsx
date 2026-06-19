@@ -36,6 +36,7 @@ import { AvailabilityStatus } from "@/features/shared/AvailabilityStatus";
 
 export function UserReservationForm() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const submitFn = useServerFn(createUserReservation);
 
   const form = useForm<UserReservationValues>({
