@@ -114,6 +114,7 @@ export function InternalEventForm() {
   });
 
   return (
+    <>
     <form onSubmit={onSubmit} className="space-y-10 max-w-3xl">
       {/* <Section title="Organizer" description="Who is responsible for this event.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -180,15 +181,7 @@ export function InternalEventForm() {
           </Field>
         </div>
 
-        <AvailabilityStatus
-          query={availability}
-          enabled={availabilityEnabled}
-          payload={
-            setup?.room
-              ? { room: setup.room, date: v.date, startTime: v.startTime, endTime: v.endTime }
-              : null
-          }
-        />
+        <AvailabilityStatus query={availability} enabled={availabilityEnabled} />
 
 
         <Field label="Attendees" error={form.formState.errors.attendees?.message}>
