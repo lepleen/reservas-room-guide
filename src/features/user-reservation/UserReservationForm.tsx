@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Plus, Trash2, AlertTriangle, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,12 @@ import {
 import { createUserReservation } from "./submit.functions";
 import { useAvailability } from "@/features/shared/useAvailability";
 import { AvailabilityStatus } from "@/features/shared/AvailabilityStatus";
+import { RequestAvailabilityDialog } from "@/components/RequestAvailabilityDialog";
+import { isRoomUnavailable } from "@/features/shared/conflict-error";
+import type {
+  AvailabilityRequest,
+  AvailabilityRequestDraft,
+} from "@/features/shared/availability-request";
 
 export function UserReservationForm() {
   const navigate = useNavigate();
@@ -62,6 +68,28 @@ export function UserReservationForm() {
     !authBypass && Boolean(setup?.room) && Boolean(v.date) && v.startTime < v.endTime;
   const hasConflict = (availability.data?.conflicts.length ?? 0) > 0;
 
+  // Conflict modal state. The captured AvailabilityRequest stays in
+  // component state so the next feature (Waiting List) can persist it
+  // without changing the modal API.
+  const [conflictOpen, setConflictOpen] = useState(false);
+  const [pendingAvailabilityRequest, setPendingAvailabilityRequest] =
+    useState<AvailabilityRequest | null>(null);
+
+  const draft: AvailabilityRequestDraft | null = useMemo(() => {
+    if (!setup?.room || !v.setupOptionId || !v.date || !v.startTime || !v.endTime) {
+      return null;
+    }
+    return {
+      requesterName: v.organizerName || undefined,
+      reservationType: "external",
+      roomId: v.setupOptionId,
+      roomName: setup.room,
+      reservationDate: v.date,
+      startTime: v.startTime,
+      endTime: v.endTime,
+    };
+  }, [setup?.room, v.setupOptionId, v.date, v.startTime, v.endTime, v.organizerName]);
+
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       if (authBypass) {
@@ -69,11 +97,22 @@ export function UserReservationForm() {
         navigate({ to: "/dashboard" });
         return;
       }
+      // Client-side re-guard. Backend remains the source of truth.
+      if (hasConflict) {
+        setConflictOpen(true);
+        return;
+      }
       const res = await submitFn({ data: { values } });
       await queryClient.invalidateQueries({ queryKey: ["reservations"] });
       toast.success("Reservation submitted for review");
       navigate({ to: "/reservations/$id", params: { id: res.id } });
     } catch (err) {
+      if (isRoomUnavailable(err)) {
+        // Re-fetch so the badge reflects the latest server state.
+        availability.refetch();
+        setConflictOpen(true);
+        return;
+      }
       const msg = err instanceof Error ? err.message : "Failed to submit reservation";
       toast.error(msg);
     }
