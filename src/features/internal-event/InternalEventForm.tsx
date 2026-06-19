@@ -486,7 +486,7 @@ export function InternalEventForm() {
         <Button type="button" variant="ghost" onClick={() => navigate({ to: "/internal/dashboard" })}>
           Cancel
         </Button>
-        <Button type="submit" disabled={form.formState.isSubmitting}>
+        <Button type="submit" disabled={form.formState.isSubmitting || hasConflict || availability.isFetching}>
           {form.formState.isSubmitting ? "Submitting…" : "Submit reservation"}
         </Button>
       </div>
