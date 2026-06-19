@@ -48,6 +48,16 @@ export function UserReservationForm() {
 
   const authBypass = import.meta.env.VITE_AUTH_BYPASS === "true";
 
+  const availability = useAvailability({
+    room: setup?.room,
+    date: v.date,
+    startTime: v.startTime,
+    endTime: v.endTime,
+  });
+  const availabilityEnabled =
+    !authBypass && Boolean(setup?.room) && Boolean(v.date) && v.startTime < v.endTime;
+  const hasConflict = (availability.data?.conflicts.length ?? 0) > 0;
+
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       if (authBypass) {
