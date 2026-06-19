@@ -1,13 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, CalendarClock, Plus, Search, Users } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useStore, type Reservation } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AuthGuard } from "@/components/AuthGuard";
+import { reservationsQueryOptions } from "@/features/reservations/queries";
+import type { ReservationDTO } from "@/features/reservations/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -17,22 +20,29 @@ export const Route = createFileRoute("/dashboard")({
     ],
   }),
   component: () => (
-    <AuthGuard><DashboardPage /></AuthGuard>
+    <AuthGuard>
+      <DashboardPage />
+    </AuthGuard>
   ),
 });
 
 type Filter = "upcoming" | "past" | "all";
 
 function DashboardPage() {
-  const { reservations, role } = useStore();
+  const {
+    data: reservations = [],
+    isLoading: _isLoading,
+    error: _error,
+  } = useQuery(reservationsQueryOptions());
+  const { roles } = useAuth();
+  const isAdmin = roles.includes("admin");
   const [filter, setFilter] = useState<Filter>("upcoming");
   const [q, setQ] = useState("");
 
   const todayISO = new Date().toISOString().slice(0, 10);
-  // User dashboard only shows user-kind requests; admins see all here.
   const scoped = useMemo(
-    () => (role === "admin" ? reservations : reservations.filter((r) => r.kind === "user")),
-    [reservations, role],
+    () => (isAdmin ? reservations : reservations.filter((r) => r.reservationType === "external")),
+    [reservations, isAdmin],
   );
   const filtered = useMemo(() => {
     const byTime = scoped.filter((r) => {
@@ -43,9 +53,7 @@ function DashboardPage() {
     const term = q.trim().toLowerCase();
     return term
       ? byTime.filter(
-          (r) =>
-            r.eventName.toLowerCase().includes(term) ||
-            r.room.toLowerCase().includes(term),
+          (r) => r.eventName.toLowerCase().includes(term) || r.room.toLowerCase().includes(term),
         )
       : byTime;
   }, [scoped, filter, q, todayISO]);
@@ -136,11 +144,12 @@ function Stat({
   );
 }
 
-function ReservationRow({ r }: { r: Reservation }) {
+function ReservationRow({ r }: { r: ReservationDTO }) {
+  const isInternal = r.reservationType === "internal";
   return (
     <li>
       <Link
-        to="/reservations/$id"
+        to={isInternal ? "/internal/reservations/$id" : "/reservations/$id"}
         params={{ id: r.id }}
         className="group flex items-center gap-4 rounded-lg border border-border bg-card px-5 py-4 hover:border-primary/40 transition-colors"
       >
@@ -149,7 +158,7 @@ function ReservationRow({ r }: { r: Reservation }) {
           <div className="flex items-center gap-2">
             <span className="font-medium truncate">{r.eventName}</span>
             <StatusBadge status={r.status} />
-            {r.hasLiveBroadcast && (
+            {r.eventType === "live_broadcast" && (
               <span className="text-[10px] uppercase tracking-wider rounded bg-accent text-accent-foreground px-1.5 py-0.5">
                 Broadcast
               </span>
@@ -185,7 +194,9 @@ function EmptyState() {
         Start by planning your first reservation.
       </p>
       <Button asChild className="mt-4">
-        <Link to="/reservations/new"><Plus className="h-4 w-4" /> New reservation</Link>
+        <Link to="/reservations/new">
+          <Plus className="h-4 w-4" /> New reservation
+        </Link>
       </Button>
     </div>
   );

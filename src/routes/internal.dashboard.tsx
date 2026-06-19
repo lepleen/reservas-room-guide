@@ -1,13 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, CalendarClock, Plus, Search, Users, Building2 } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useStore, type Reservation } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AuthGuard } from "@/components/AuthGuard";
+import { reservationsQueryOptions } from "@/features/reservations/queries";
+import type { ReservationDTO } from "@/features/reservations/types";
 
 export const Route = createFileRoute("/internal/dashboard")({
   head: () => ({
@@ -16,19 +18,27 @@ export const Route = createFileRoute("/internal/dashboard")({
       { name: "description", content: "Internal team room reservations." },
     ],
   }),
-  component: () => (<AuthGuard roles={["internal", "admin"]}><InternalDashboardPage /></AuthGuard>),
+  component: () => (
+    <AuthGuard roles={["internal", "admin"]}>
+      <InternalDashboardPage />
+    </AuthGuard>
+  ),
 });
 
 type Filter = "upcoming" | "past" | "all";
 
 function InternalDashboardPage() {
-  const { reservations } = useStore();
+  const {
+    data: reservations = [],
+    isLoading: _isLoading,
+    error: _error,
+  } = useQuery(reservationsQueryOptions());
   const [filter, setFilter] = useState<Filter>("upcoming");
   const [q, setQ] = useState("");
 
   const todayISO = new Date().toISOString().slice(0, 10);
   const scoped = useMemo(
-    () => reservations.filter((r) => r.kind === "internal"),
+    () => reservations.filter((r) => r.reservationType === "internal"),
     [reservations],
   );
   const filtered = useMemo(() => {
@@ -40,9 +50,7 @@ function InternalDashboardPage() {
     const term = q.trim().toLowerCase();
     return term
       ? byTime.filter(
-          (r) =>
-            r.eventName.toLowerCase().includes(term) ||
-            r.room.toLowerCase().includes(term),
+          (r) => r.eventName.toLowerCase().includes(term) || r.room.toLowerCase().includes(term),
         )
       : byTime;
   }, [scoped, filter, q, todayISO]);
@@ -107,7 +115,9 @@ function InternalDashboardPage() {
             Submit your first internal reservation.
           </p>
           <Button asChild className="mt-4">
-            <Link to="/internal/reservations/new"><Plus className="h-4 w-4" /> New internal request</Link>
+            <Link to="/internal/reservations/new">
+              <Plus className="h-4 w-4" /> New internal request
+            </Link>
           </Button>
         </div>
       ) : (
@@ -141,7 +151,7 @@ function Stat({
   );
 }
 
-function ReservationRow({ r }: { r: Reservation }) {
+function ReservationRow({ r }: { r: ReservationDTO }) {
   return (
     <li>
       <Link

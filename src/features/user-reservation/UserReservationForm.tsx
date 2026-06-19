@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo } from "react";
@@ -35,6 +36,7 @@ import { AvailabilityStatus } from "@/features/shared/AvailabilityStatus";
 
 export function UserReservationForm() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const submitFn = useServerFn(createUserReservation);
 
   const form = useForm<UserReservationValues>({
@@ -68,6 +70,7 @@ export function UserReservationForm() {
         return;
       }
       const res = await submitFn({ data: { values } });
+      await queryClient.invalidateQueries({ queryKey: ["reservations"] });
       toast.success("Reservation submitted for review");
       navigate({ to: "/reservations/$id", params: { id: res.id } });
     } catch (err) {

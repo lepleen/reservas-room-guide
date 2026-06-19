@@ -11,11 +11,19 @@ import {
   CalendarRange,
 } from "lucide-react";
 import { type ReactNode } from "react";
-import { useStore } from "@/lib/store";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user, logout, role, setRole } = useStore();
+  const { user: authUser, profile, roles, signOut } = useAuth();
+  const role: "admin" | "internal" | "user" = roles.includes("admin")
+    ? "admin"
+    : roles.includes("internal")
+      ? "internal"
+      : "user";
+  const user = authUser
+    ? { name: profile?.full_name || authUser.email || "Account", email: authUser.email ?? "" }
+    : null;
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
@@ -38,7 +46,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             { to: "/reservations/new", label: "New request", icon: Plus },
           ];
 
-  const panelLabel = role === "admin" ? "Admin panel" : role === "internal" ? "Internal panel" : "User panel";
+  const panelLabel =
+    role === "admin" ? "Admin panel" : role === "internal" ? "Internal panel" : "User panel";
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -87,7 +96,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className="flex-1 space-y-1">
           {nav.map((item) => {
             const active =
-              pathname === item.to || (item.to !== "/dashboard" && item.to !== "/" && pathname.startsWith(item.to));
+              pathname === item.to ||
+              (item.to !== "/dashboard" && item.to !== "/" && pathname.startsWith(item.to));
             const Icon = item.icon;
             return (
               <Link
@@ -117,12 +127,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               <button
                 onClick={async () => {
                   try {
-                    const { supabase } = await import("@/integrations/supabase/client");
-                    await supabase.auth.signOut();
+                    await signOut();
                   } catch {
                     /* noop */
                   }
-                  logout();
                   navigate({ to: "/auth" });
                 }}
                 className="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/60 transition-colors"

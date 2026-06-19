@@ -1,93 +1,69 @@
 ## Goal
 
-Add per-room, time-overlap availability validation to both reservation flows (External User and Internal Event), with frontend hints, a friendly "Request availability" dialog, and authoritative backend enforcement.
+Wire both reservation forms to the Admin Dashboard via Supabase. Today the forms already INSERT into `public.reservations`, but the admin dashboard, calendar, user dashboard, and detail pages still read from a local `useStore` (localStorage). Newly submitted reservations therefore never appear in Admin. This plan closes that gap with the smallest possible surface change.
 
-## Architecture analysis (current state)
+## What's already in place (no change needed)
 
-- **Status storage**: `public.reservations.status text CHECK IN ('pending','approved','rejected')`. Needs `confirmed` + `cancelled` added.
-- **Availability today**: none. Both forms accept any date/time. `findConflicts` exists in `src/lib/store.tsx` but is unused by the new Supabase-backed flows.
-- **Calendar component**: `src/routes/calendar.tsx` is read-only visualization. Date pickers in forms are plain `<input type="date">` / `<input type="time">` — there is no calendar picker to disable dates on.
-- **Submit path**: `src/features/user-reservation/submit.functions.ts` and `src/features/internal-event/submit.functions.ts` both `INSERT` into `reservations` with no conflict check.
-- **Room**: derived from `setupOptionId` via `getSetupOption(...).room` — stored as `reservations.room`.
+- `public.reservations` table exists with a `kind` column (`'user' | 'internal'`) — this is the reservation type discriminator. Status CHECK already allows `pending | approved | confirmed | rejected | cancelled`. No schema migration required.
+- RLS policies already let admins read/update/delete every row and let owners read their own.
+- Both form submit handlers (`features/user-reservation/submit.functions.ts`, `features/internal-event/submit.functions.ts`) already insert with the correct `kind` and `status='pending'`.
 
-## Plan
+## What changes
 
-### 1. Database (one migration)
+### 1. New server functions (`src/features/admin/reservations.functions.ts`)
 
-- Drop the existing status CHECK; add a new CHECK allowing `pending | approved | confirmed | rejected | cancelled`.
-- Add an EXCLUSION constraint to atomically prevent overlapping bookings in the same room with a blocking status — the only race-safe option:
-  ```sql
-  CREATE EXTENSION IF NOT EXISTS btree_gist;
-  ALTER TABLE public.reservations
-    ADD CONSTRAINT reservations_no_overlap
-    EXCLUDE USING gist (
-      room WITH =,
-      date WITH =,
-      tsrange(
-        (date::text || ' ' || start_time::text)::timestamp,
-        (date::text || ' ' || end_time::text)::timestamp,
-        '[)'
-      ) WITH &&
-    ) WHERE (status IN ('pending','approved','confirmed'));
-  ```
-- Add a helper SQL function `public.find_conflicts(_room text, _date date, _start time, _end time, _exclude uuid default null)` returning conflicting rows (blocking statuses only). Used by server functions and clients via RPC.
-- `GRANT EXECUTE ON FUNCTION public.find_conflicts(...) TO authenticated;`
+- `listReservations()` — `requireSupabaseAuth`, returns all rows ordered by date. RLS naturally scopes: admin sees all, internal sees internal, user sees own. Returns a normalized DTO shape matching the existing `Reservation` type (camelCase).
+- `getReservationById({ id })` — single row fetch (for detail pages).
+- `updateReservationStatus({ id, status, adminNotes? })` — admin-only (verifies `has_role('admin')`); writes `status`, `admin_notes`, `reviewed_at`.
+- `updateReservation({ id, patch })` — admin-only edit of arbitrary editable fields (date/time/room/attendees/notes/etc.); reuses availability check.
 
-### 2. Server functions
+### 2. Replace localStorage reads with TanStack Query
 
-- New `src/features/shared/availability.functions.ts`:
-  - `checkAvailability({ room, date, startTime, endTime, excludeId? })` — calls `find_conflicts`; returns `{ available, conflicts: [{ id, eventName, startTime, endTime, status }] }`.
-- `createUserReservation` and `createInternalEvent`: call `checkAvailability` before insert; if conflicts, throw a typed error. The DB exclusion constraint is the final guard against races; translate Postgres `23P01` to a friendly message.
+- `src/routes/admin.tsx`: swap `useStore()` for `useSuspenseQuery(listReservationsOptions)`. Add a fifth action button "Cancel" for non-pending rows (admin only). The existing Approve/Reject dialog calls `updateReservationStatus` (approved/rejected/cancelled).
+- `src/routes/reservations.$id.tsx` and `src/routes/internal.reservations.$id.tsx`: read via `getReservationById`. Surface admin-only edit + status controls inside these pages so "View / Edit" works from the dashboard.
+- `src/routes/dashboard.tsx` and `src/routes/calendar.tsx`: switch to the same `listReservations` query so users immediately see their newly submitted reservations.
+- After successful submit in both forms, invalidate the `["reservations"]` query key (already redirects to the detail page — keep that UX).
 
-### 3. Forms (both User + Internal, identical logic in their own files — no cross-coupling)
+### 3. Field naming
 
-- After `room + date + startTime + endTime` are all set and times pass basic validation, call `checkAvailability` (debounced, via TanStack Query keyed on those four values).
-- Show inline status under the time fields:
-  - Green "Time slot available."
-  - Red "This time conflicts with: &nbsp; (HH:MM–HH:MM)." + button **"Request availability"**.
-- Disable Submit when conflicts exist or query is pending.
-- Server submission still validates; show error toast on failure.
+The spec asks for `reservation_type`. The existing column is `kind` with values `user|internal`. To avoid duplicate columns and risky data backfill, **map at the API boundary**: the server functions expose `reservationType: 'external' | 'internal'` in returned DTOs (mapping `kind='user' → 'external'`). No DB migration; the database stays the single source of truth. If you prefer a physical rename, say so and I'll add a migration that renames `kind → reservation_type` and updates the CHECK to `external|internal` plus all references — it's a wider change so I'm defaulting to the mapping approach.
 
-### 4. "Request availability" dialog (shared, presentation-only)
+### 4. Cleanup
 
-- New `src/components/RequestAvailabilityDialog.tsx`: shadcn `Dialog` with a short explanation and a single **Send email** button that opens a `mailto:` link.
-- Email is sent to a configurable address read from `import.meta.env.VITE_AVAILABILITY_REQUEST_EMAIL` with fallback `availability@example.com` (temporary generic address per user request — added to `.env`).
-- Subject: `Reservation Availability Request`
-- Body: pre-filled with the requested room, date, time interval, and placeholder fields (Name / Company / Phone / Email) — kept as a plain template string so it's easy to swap later for a waitlist table.
-- Designed as a thin abstraction: `onRequest({ room, date, startTime, endTime })` — future waitlist/notification implementations replace only this handler.
+- Delete `src/lib/store.tsx` once all routes are migrated (or keep just the `findConflicts` helper if other code uses it — I'll inline the rare remaining usage). No design, layout, navigation, auth, or form-UI changes.
 
-### 5. Calendar route (`/calendar`)
+## Out of scope (per the request)
 
-- Out of scope for blocking, since blocking is now per-room time interval, not full days. Leave existing visualization unchanged.
-
-## Out of scope
-
-- Admin status-update UI (status changes already free the slot automatically via the exclusion constraint + query refetch).
-- Replacing native date/time inputs with a richer picker.
-- Real waitlist persistence (left as a future swap-in behind the dialog handler).
-
-## Files touched
-
-- **New migration**: `supabase/migrations/<ts>_reservation_availability.sql`
-- **New**: `src/features/shared/availability.functions.ts`, `src/components/RequestAvailabilityDialog.tsx`
-- **Edit**: `src/features/user-reservation/UserReservationForm.tsx`, `src/features/user-reservation/submit.functions.ts`, `src/features/internal-event/InternalEventForm.tsx`, `src/features/internal-event/submit.functions.ts`, `.env`
+Login/auth, homepage, navigation, form layout/styling, existing admin permissions model.
 
 ## Verification
 
-- Typecheck clean.
-- Manual: create reservation in Atlas Hall 09:00–12:00 → try overlapping in same room (blocked, dialog opens) → try same time in Nova Auditorium (allowed) → try 13:00–15:00 in Atlas (allowed) → cancel original via SQL (`UPDATE reservations SET status='cancelled'`) → previously blocked slot becomes available.  
+- Submit one external + one internal reservation as different users → both appear instantly in `/admin` with `Pending`.
+- Admin Approve / Reject / Cancel updates the row and badge; requester sees the new status on their dashboard after refetch.
+- Admin "Edit" on the detail page persists and the change shows on the list.
+- RLS still blocks non-admins from seeing others' reservations (verified by signing in as a non-admin user).
+
+## Open question
+
+Confirm the field-naming approach: keep `kind` in the DB and expose `reservationType` (external|internal) in the API (default), or physically rename the column to `reservation_type`?  
   
-  
-When editing an existing reservation, the reservation being edited must not be considered a conflict.
-  Availability must be recalculated immediately whenever the user changes:
-  - Room
-  - Date
-  - Start Time
-  - End Time
-  The system must reject reservations where:
-  - Start Time equals End Time.
-  - Start Time is after End Time.
-  No fallback email address should be used.
-  The request email address must be configured through environment variables.
-  Availability validation must use the application's configured timezone.
-  If reservation editing is supported, conflict detection must ignore the current reservation using its unique identifier.
+Answer:
+
+I want Supabase to be the single source of truth for all reservation data.
+
+Please proceed with the migration from localStorage/useStore to Supabase-backed queries.
+
+My goal is to manage and audit reservation data directly from Supabase in the future.
+
+Requirements:
+
+- Keep the existing `kind` column.
+- Do not create a new `reservation_type` column.
+- Expose `reservationType` only at the API/DTO layer if needed.
+- Replace all reservation-related localStorage/useStore reads with Supabase queries.
+- The Admin Dashboard, Calendar, User Dashboard, and Reservation Detail pages must read directly from Supabase.
+- Any reservation created, updated, approved, rejected, confirmed, or cancelled must be immediately reflected across the application through Supabase as the single source of truth.
+
+Please remove any reservation persistence logic that relies on localStorage once the migration is complete.
+
+The final architecture should use Supabase as the authoritative database for all reservation workflows.

@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Building2, LayoutDashboard, Plus, ShieldCheck, Sparkles, UserRound } from "lucide-react";
+import { ArrowRight, Building2, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -22,9 +21,6 @@ export const Route = createFileRoute("/")({
 });
 
 function LandingPage() {
-  const { setRole, reservations } = useStore();
-  const pending = reservations.filter((r) => r.status === "pending").length;
-
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
@@ -41,7 +37,7 @@ function LandingPage() {
           <Link to="/auth" className="text-sm text-muted-foreground hover:text-foreground">
             Creat account
           </Link>
-         <QuickLink to="/admin" icon={ShieldCheck} label="Admin review" />
+          <QuickLink to="/admin" icon={ShieldCheck} label="Admin review" />
         </div>
       </header>
 
@@ -68,7 +64,6 @@ function LandingPage() {
           description="Browse events, fill the reservation form, and submit a request to the administrator."
           cta="User"
           to="/dashboard"
-          onClick={() => setRole("user")}
         />
         <RoleCard
           icon={Building2}
@@ -76,17 +71,15 @@ function LandingPage() {
           description="Submit room requests on behalf of internal teams in a fully separated workspace."
           cta="Internal user"
           to="/internal/dashboard"
-          onClick={() => setRole("internal")}
         />
 
         {/*
         <RoleCard
           icon={ShieldCheck}
           title="I'm an administrator"
-          description={`Review submitted requests and approve or reject them.${pending ? ` ${pending} pending right now.` : ""}`}
+          description="Review submitted requests and approve or reject them."
           cta="Open admin panel"
           to="/admin"
-          onClick={() => setRole("admin")}
         />
         */}
       </section>
@@ -107,14 +100,12 @@ function RoleCard({
   description,
   cta,
   to,
-  onClick,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
   cta: string;
   to: string;
-  onClick: () => void;
 }) {
   return (
     <div className="rounded-xl border border-border bg-card p-6 flex flex-col">
@@ -123,7 +114,7 @@ function RoleCard({
       </div>
       <h3 className="text-lg font-semibold tracking-tight">{title}</h3>
       <p className="mt-2 text-sm text-muted-foreground flex-1">{description}</p>
-      <Button asChild className="mt-5 w-fit" onClick={onClick}>
+      <Button asChild className="mt-5 w-fit">
         <Link to={to}>
           {cta} <ArrowRight className="h-4 w-4" />
         </Link>
