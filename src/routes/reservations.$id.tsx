@@ -1,19 +1,32 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowLeft, CalendarClock, MapPin, Users } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
-import { useStore } from "@/lib/store";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AuthGuard } from "@/components/AuthGuard";
+import { reservationQueryOptions } from "@/features/reservations/queries";
+import { getSetupOption } from "@/lib/reservation-options";
 
 export const Route = createFileRoute("/reservations/$id")({
+  loader: ({ context, params }) =>
+    context.queryClient.ensureQueryData(reservationQueryOptions(params.id)),
+  errorComponent: ({ error }) => (
+    <AppShell>
+      <PageHeader title="Couldn't load reservation" description={error.message} />
+    </AppShell>
+  ),
+  notFoundComponent: () => (
+    <AppShell>
+      <PageHeader title="Reservation not found" />
+    </AppShell>
+  ),
   component: () => (<AuthGuard><ReservationDetailPage /></AuthGuard>),
 });
 
 function ReservationDetailPage() {
   const { id } = Route.useParams();
-  const { getReservation } = useStore();
-  const r = getReservation(id);
+  const { data: r } = useSuspenseQuery(reservationQueryOptions(id));
 
   if (!r) {
     return (
@@ -26,6 +39,8 @@ function ReservationDetailPage() {
     );
   }
 
+  const setup = getSetupOption(r.setupOptionId);
+
   return (
     <AppShell>
       <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4">
@@ -33,7 +48,7 @@ function ReservationDetailPage() {
       </Link>
       <PageHeader
         title={r.eventName}
-        description={`Requested by ${r.ownerName || r.ownerEmail} · ${new Date(r.createdAt).toLocaleDateString()}`}
+        description={`Requested by ${r.ownerName || r.ownerEmail || r.organizerName} · ${new Date(r.createdAt).toLocaleDateString()}`}
         action={<StatusBadge status={r.status} />}
       />
 
@@ -54,7 +69,7 @@ function ReservationDetailPage() {
         </Info>
         <Info icon={MapPin} label="Where">
           {r.room}<br />
-          <span className="text-muted-foreground capitalize">{r.setupStyle} setup</span>
+          <span className="text-muted-foreground">{setup?.label ?? r.setupOptionId}</span>
         </Info>
         <Info icon={Users} label="Attendees">
           {r.attendees}<br />
@@ -71,26 +86,31 @@ function ReservationDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Panel title="Audiovisual">
           <Row label="Recording" value={r.recording ? "Yes" : "No"} />
-          <Row label="Live broadcast" value={r.hasLiveBroadcast ? r.broadcastPlatform || "Yes" : "No"} />
+          <Row label="Event type" value={r.eventType.replace("_", " ")} />
+          <Row label="Live broadcast" value={r.broadcastPlatform ?? "—"} />
           <Row label="Microphone" value={r.microphoneType ?? "—"} />
           <Row
             label="LED color"
             value={
-              <span className="inline-flex items-center gap-2">
-                <span
-                  className="inline-block h-3 w-3 rounded-full border border-border"
-                  style={{ backgroundColor: r.ledColor }}
-                />
-                {r.ledColor}
-              </span>
+              r.ledColor ? (
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    className="inline-block h-3 w-3 rounded-full border border-border"
+                    style={{ backgroundColor: r.ledColor }}
+                  />
+                  {r.ledColor}
+                </span>
+              ) : (
+                "—"
+              )
             }
           />
         </Panel>
 
         <Panel title="Catering">
           <Row label="Required" value={r.catering ? "Yes" : "No"} />
-          {r.catering && r.cateringNotes && (
-            <p className="text-sm text-muted-foreground">{r.cateringNotes}</p>
+          {r.catering && r.cateringItems.length > 0 && (
+            <p className="text-sm text-muted-foreground">{r.cateringItems.join(", ")}</p>
           )}
         </Panel>
 
