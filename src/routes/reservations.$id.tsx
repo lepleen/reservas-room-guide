@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, CalendarClock, MapPin, Users } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/reservations/$id")({
 
 function ReservationDetailPage() {
   const { id } = Route.useParams();
-  const { data: r } = useSuspenseQuery(reservationQueryOptions(id));
+  const { data: r, isLoading, error } = useQuery(reservationQueryOptions(id));
 
   if (!r) {
     return (

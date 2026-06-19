@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, CalendarClock, Plus, Search, Users } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ export const Route = createFileRoute("/dashboard")({
 type Filter = "upcoming" | "past" | "all";
 
 function DashboardPage() {
-  const { data: reservations } = useSuspenseQuery(reservationsQueryOptions());
+  const { data: reservations, isLoading, error } = useQuery(reservationsQueryOptions());
   const { roles } = useAuth();
   const isAdmin = roles.includes("admin");
   const [filter, setFilter] = useState<Filter>("upcoming");
