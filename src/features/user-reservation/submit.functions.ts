@@ -97,5 +97,3 @@ function toAvailabilityConflicts(rows: Array<{
     status: r.status,
   }));
 }
-    return { id: row!.id as string };
-  });
