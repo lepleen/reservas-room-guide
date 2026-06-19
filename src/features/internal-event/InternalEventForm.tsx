@@ -30,6 +30,8 @@ import {
   EQUIPMENT_ITEMS,
 } from "@/lib/reservation-options";
 import { createInternalEvent } from "./submit.functions";
+import { useAvailability } from "@/features/shared/useAvailability";
+import { AvailabilityStatus } from "@/features/shared/AvailabilityStatus";
 
 export function InternalEventForm() {
   const navigate = useNavigate();
