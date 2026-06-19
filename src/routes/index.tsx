@@ -101,14 +101,12 @@ function RoleCard({
   description,
   cta,
   to,
-  onClick,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
   cta: string;
   to: string;
-  onClick: () => void;
 }) {
   return (
     <div className="rounded-xl border border-border bg-card p-6 flex flex-col">
@@ -117,7 +115,7 @@ function RoleCard({
       </div>
       <h3 className="text-lg font-semibold tracking-tight">{title}</h3>
       <p className="mt-2 text-sm text-muted-foreground flex-1">{description}</p>
-      <Button asChild className="mt-5 w-fit" onClick={onClick}>
+      <Button asChild className="mt-5 w-fit">
         <Link to={to}>
           {cta} <ArrowRight className="h-4 w-4" />
         </Link>
