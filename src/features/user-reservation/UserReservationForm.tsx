@@ -485,7 +485,7 @@ export function UserReservationForm() {
         <Button type="button" variant="ghost" onClick={() => navigate({ to: "/dashboard" })}>
           Cancel
         </Button>
-        <Button type="submit" disabled={form.formState.isSubmitting}>
+        <Button type="submit" disabled={form.formState.isSubmitting || hasConflict || availability.isFetching}>
           {form.formState.isSubmitting ? "Submitting…" : "Submit reservation"}
         </Button>
       </div>
