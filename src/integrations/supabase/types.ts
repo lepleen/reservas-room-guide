@@ -190,6 +190,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_conflicts: {
+        Args: {
+          _date: string
+          _end: string
+          _exclude?: string
+          _room: string
+          _start: string
+        }
+        Returns: {
+          end_time: string
+          event_name: string
+          id: string
+          start_time: string
+          status: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
