@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { AlertTriangle, ArrowUpRight, CheckCircle2, Clock, ShieldCheck, XCircle } from "lucide-react";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { AlertTriangle, ArrowUpRight, Ban, CheckCircle2, CircleCheck, ShieldCheck, XCircle } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,10 +14,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useStore, findConflicts, type Reservation } from "@/lib/store";
+import { reservationsQueryOptions, reservationsQueryKey } from "@/features/reservations/queries";
+import { updateReservationStatus } from "@/features/admin/reservations.functions";
+import type { ReservationDTO, ReservationStatus } from "@/features/reservations/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { AuthGuard } from "@/components/AuthGuard";
+import { StatusBadge } from "@/components/StatusBadge";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -24,6 +29,18 @@ export const Route = createFileRoute("/admin")({
       { name: "description", content: "Review and decide on submitted reservation requests." },
     ],
   }),
+  loader: ({ context }) =>
+    context.queryClient.ensureQueryData(reservationsQueryOptions()),
+  errorComponent: ({ error }) => (
+    <AppShell>
+      <PageHeader title="Couldn't load reservations" description={error.message} />
+    </AppShell>
+  ),
+  notFoundComponent: () => (
+    <AppShell>
+      <PageHeader title="Not found" />
+    </AppShell>
+  ),
   component: () => (
     <AuthGuard roles={["admin"]}>
       <AdminPage />
@@ -31,22 +48,40 @@ export const Route = createFileRoute("/admin")({
   ),
 });
 
-type Tab = "pending" | "approved" | "rejected" | "all";
+type Tab = "pending" | "approved" | "confirmed" | "rejected" | "cancelled" | "all";
+
+type DecisionType = Exclude<ReservationStatus, "pending">;
+
+function findOverlaps(rows: ReservationDTO[], r: ReservationDTO) {
+  return rows.filter(
+    (o) =>
+      o.id !== r.id &&
+      o.room === r.room &&
+      o.date === r.date &&
+      o.status !== "rejected" &&
+      o.status !== "cancelled" &&
+      o.startTime < r.endTime &&
+      o.endTime > r.startTime,
+  );
+}
 
 function AdminPage() {
-  const { reservations, decideReservation } = useStore();
+  const { data: reservations } = useSuspenseQuery(reservationsQueryOptions());
+  const queryClient = useQueryClient();
+  const updateStatus = useServerFn(updateReservationStatus);
+
   const [tab, setTab] = useState<Tab>("pending");
-  const [decision, setDecision] = useState<{
-    r: Reservation;
-    type: "approved" | "rejected";
-  } | null>(null);
+  const [decision, setDecision] = useState<{ r: ReservationDTO; type: DecisionType } | null>(null);
   const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const counts = useMemo(
     () => ({
       pending: reservations.filter((r) => r.status === "pending").length,
       approved: reservations.filter((r) => r.status === "approved").length,
+      confirmed: reservations.filter((r) => r.status === "confirmed").length,
       rejected: reservations.filter((r) => r.status === "rejected").length,
+      cancelled: reservations.filter((r) => r.status === "cancelled").length,
       all: reservations.length,
     }),
     [reservations],
@@ -54,23 +89,42 @@ function AdminPage() {
 
   const list = useMemo(
     () =>
-      reservations.filter((r) => (tab === "all" ? true : r.status === tab)).sort((a, b) => (a.date < b.date ? -1 : 1)),
+      reservations
+        .filter((r) => (tab === "all" ? true : r.status === tab))
+        .slice()
+        .sort((a, b) => (a.date < b.date ? -1 : 1)),
     [reservations, tab],
   );
 
-  const submitDecision = () => {
+  const submitDecision = async () => {
     if (!decision) return;
-    decideReservation(decision.r.id, decision.type, notes.trim() || undefined);
-    toast.success(decision.type === "approved" ? "Request approved" : "Request rejected");
-    setDecision(null);
-    setNotes("");
+    setSubmitting(true);
+    try {
+      await updateStatus({
+        data: { id: decision.r.id, status: decision.type, adminNotes: notes.trim() || undefined },
+      });
+      const labels: Record<DecisionType, string> = {
+        approved: "Request approved",
+        confirmed: "Request confirmed",
+        rejected: "Request rejected",
+        cancelled: "Request cancelled",
+      };
+      toast.success(labels[decision.type]);
+      await queryClient.invalidateQueries({ queryKey: reservationsQueryKey });
+      setDecision(null);
+      setNotes("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <AppShell>
       <PageHeader
         title="Review requests"
-        description="Approve or reject reservation requests submitted by users."
+        description="Approve, confirm, reject or cancel reservation requests."
         action={
           <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
             <ShieldCheck className="h-4 w-4" /> Admin view
@@ -78,8 +132,8 @@ function AdminPage() {
         }
       />
 
-      {/* <div className="inline-flex rounded-md border border-border bg-card p-1 mb-6">
-        {(["pending", "approved", "rejected", "all"] as Tab[]).map((t) => (
+      <div className="inline-flex flex-wrap rounded-md border border-border bg-card p-1 mb-6">
+        {(["pending", "approved", "confirmed", "rejected", "cancelled", "all"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -94,7 +148,7 @@ function AdminPage() {
             <span className="text-xs text-muted-foreground">{counts[t]}</span>
           </button>
         ))}
-      </div> */}
+      </div>
 
       {list.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center">
@@ -104,13 +158,8 @@ function AdminPage() {
       ) : (
         <ul className="space-y-3">
           {list.map((r) => {
-            const conflicts = findConflicts(reservations, {
-              date: r.date,
-              room: r.room,
-              startTime: r.startTime,
-              endTime: r.endTime,
-              excludeId: r.id,
-            });
+            const conflicts = findOverlaps(reservations, r);
+            const isInternal = r.reservationType === "internal";
             return (
               <li
                 key={r.id}
@@ -119,7 +168,7 @@ function AdminPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Link
-                      to={r.kind === "internal" ? "/internal/reservations/$id" : "/reservations/$id"}
+                      to={isInternal ? "/internal/reservations/$id" : "/reservations/$id"}
                       params={{ id: r.id }}
                       className="font-medium hover:underline truncate"
                     >
@@ -129,10 +178,10 @@ function AdminPage() {
                     <span
                       className={cn(
                         "text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5",
-                        r.kind === "internal" ? "bg-accent text-accent-foreground" : "bg-secondary text-foreground",
+                        isInternal ? "bg-accent text-accent-foreground" : "bg-secondary text-foreground",
                       )}
                     >
-                      {r.kind === "internal" ? "Internal" : "User"}
+                      {isInternal ? "Internal" : "External"}
                     </span>
                     {conflicts.length > 0 && (
                       <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider rounded bg-destructive/10 text-destructive px-1.5 py-0.5">
@@ -145,18 +194,21 @@ function AdminPage() {
                     {new Date(r.date + "T00:00:00").toLocaleDateString(undefined, { dateStyle: "medium" })} ·{" "}
                     {r.startTime}–{r.endTime} · {r.room} · {r.attendees} attendees
                   </div>
-                  <div className="mt-1 text-xs text-muted-foreground">Requested by {r.ownerName || r.ownerEmail}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Requested by {r.ownerName || r.ownerEmail || r.organizerName}
+                  </div>
                   {conflicts.length > 0 && (
                     <p className="mt-2 text-xs text-destructive">
-                      Overlaps with: {conflicts.map((c) => `${c.eventName} (${c.startTime}–${c.endTime})`).join(", ")}
+                      Overlaps with:{" "}
+                      {conflicts.map((c) => `${c.eventName} (${c.startTime}–${c.endTime})`).join(", ")}
                     </p>
                   )}
                   {r.adminNotes && <p className="mt-2 text-xs text-muted-foreground italic">Note: {r.adminNotes}</p>}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Button asChild variant="ghost" size="sm">
                     <Link
-                      to={r.kind === "internal" ? "/internal/reservations/$id" : "/reservations/$id"}
+                      to={isInternal ? "/internal/reservations/$id" : "/reservations/$id"}
                       params={{ id: r.id }}
                     >
                       View <ArrowUpRight className="h-3.5 w-3.5" />
@@ -171,6 +223,16 @@ function AdminPage() {
                         <CheckCircle2 className="h-4 w-4" /> Approve
                       </Button>
                     </>
+                  )}
+                  {r.status === "approved" && (
+                    <Button size="sm" onClick={() => setDecision({ r, type: "confirmed" })}>
+                      <CircleCheck className="h-4 w-4" /> Confirm
+                    </Button>
+                  )}
+                  {r.status !== "cancelled" && r.status !== "rejected" && (
+                    <Button size="sm" variant="outline" onClick={() => setDecision({ r, type: "cancelled" })}>
+                      <Ban className="h-4 w-4" /> Cancel
+                    </Button>
                   )}
                 </div>
               </li>
@@ -190,7 +252,12 @@ function AdminPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{decision?.type === "approved" ? "Approve request" : "Reject request"}</DialogTitle>
+            <DialogTitle>
+              {decision?.type === "approved" && "Approve request"}
+              {decision?.type === "confirmed" && "Confirm reservation"}
+              {decision?.type === "rejected" && "Reject request"}
+              {decision?.type === "cancelled" && "Cancel reservation"}
+            </DialogTitle>
             <DialogDescription>
               {decision?.r.eventName} — {decision?.r.room}
             </DialogDescription>
@@ -203,9 +270,7 @@ function AdminPage() {
               rows={3}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder={
-                decision?.type === "approved" ? "Looks great — room is confirmed." : "Reason for the rejection…"
-              }
+              placeholder="Optional message…"
             />
           </div>
           <DialogFooter>
@@ -216,40 +281,14 @@ function AdminPage() {
                 setNotes("");
               }}
             >
-              Cancel
+              Close
             </Button>
-            <Button onClick={submitDecision}>Confirm {decision?.type === "approved" ? "approval" : "rejection"}</Button>
+            <Button onClick={submitDecision} disabled={submitting}>
+              {submitting ? "Saving…" : "Confirm"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </AppShell>
-  );
-}
-
-function StatusBadge({ status }: { status: Reservation["status"] }) {
-  const map = {
-    pending: { label: "Pending", cls: "bg-secondary text-foreground", Icon: Clock },
-    approved: {
-      label: "Approved",
-      cls: "bg-primary/10 text-primary",
-      Icon: CheckCircle2,
-    },
-    rejected: {
-      label: "Rejected",
-      cls: "bg-destructive/10 text-destructive",
-      Icon: XCircle,
-    },
-  } as const;
-  const { label, cls, Icon } = map[status];
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wider font-medium",
-        cls,
-      )}
-    >
-      <Icon className="h-3 w-3" />
-      {label}
-    </span>
   );
 }
