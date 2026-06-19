@@ -1,13 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowUpRight, CalendarClock, Plus, Search, Users, Building2 } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useStore, type Reservation } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AuthGuard } from "@/components/AuthGuard";
+import { reservationsQueryOptions } from "@/features/reservations/queries";
+import type { ReservationDTO } from "@/features/reservations/types";
 
 export const Route = createFileRoute("/internal/dashboard")({
   head: () => ({
@@ -16,19 +18,30 @@ export const Route = createFileRoute("/internal/dashboard")({
       { name: "description", content: "Internal team room reservations." },
     ],
   }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(reservationsQueryOptions()),
+  errorComponent: ({ error }) => (
+    <AppShell>
+      <PageHeader title="Couldn't load reservations" description={error.message} />
+    </AppShell>
+  ),
+  notFoundComponent: () => (
+    <AppShell>
+      <PageHeader title="Not found" />
+    </AppShell>
+  ),
   component: () => (<AuthGuard roles={["internal", "admin"]}><InternalDashboardPage /></AuthGuard>),
 });
 
 type Filter = "upcoming" | "past" | "all";
 
 function InternalDashboardPage() {
-  const { reservations } = useStore();
+  const { data: reservations } = useSuspenseQuery(reservationsQueryOptions());
   const [filter, setFilter] = useState<Filter>("upcoming");
   const [q, setQ] = useState("");
 
   const todayISO = new Date().toISOString().slice(0, 10);
   const scoped = useMemo(
-    () => reservations.filter((r) => r.kind === "internal"),
+    () => reservations.filter((r) => r.reservationType === "internal"),
     [reservations],
   );
   const filtered = useMemo(() => {
@@ -141,7 +154,7 @@ function Stat({
   );
 }
 
-function ReservationRow({ r }: { r: Reservation }) {
+function ReservationRow({ r }: { r: ReservationDTO }) {
   return (
     <li>
       <Link
