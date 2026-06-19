@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
-import { useStore, type Reservation } from "@/lib/store";
 import { StatusBadge } from "@/components/StatusBadge";
 import { cn } from "@/lib/utils";
 import { AuthGuard } from "@/components/AuthGuard";
+import { reservationsQueryOptions } from "@/features/reservations/queries";
+import type { ReservationDTO } from "@/features/reservations/types";
 
 export const Route = createFileRoute("/calendar")({
   head: () => ({
@@ -15,6 +17,17 @@ export const Route = createFileRoute("/calendar")({
       { name: "description", content: "Month view of every room reservation." },
     ],
   }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(reservationsQueryOptions()),
+  errorComponent: ({ error }) => (
+    <AppShell>
+      <PageHeader title="Couldn't load reservations" description={error.message} />
+    </AppShell>
+  ),
+  notFoundComponent: () => (
+    <AppShell>
+      <PageHeader title="Not found" />
+    </AppShell>
+  ),
   component: () => (
     <AuthGuard>
       <CalendarPage />
@@ -23,37 +36,29 @@ export const Route = createFileRoute("/calendar")({
 });
 
 function CalendarPage() {
-  const { reservations, role } = useStore();
+  const { data: reservations } = useSuspenseQuery(reservationsQueryOptions());
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return { y: d.getFullYear(), m: d.getMonth() };
   });
   const [selected, setSelected] = useState<string | null>(null);
 
-  // Scope per role; admins see everything.
-  const scoped = useMemo(() => {
-    if (role === "admin") return reservations;
-    if (role === "internal") return reservations.filter((r) => r.kind === "internal");
-    return reservations.filter((r) => r.kind === "user");
-  }, [reservations, role]);
-
   const byDate = useMemo(() => {
-    const map = new Map<string, Reservation[]>();
-    for (const r of scoped) {
+    const map = new Map<string, ReservationDTO[]>();
+    for (const r of reservations) {
       if (!map.has(r.date)) map.set(r.date, []);
       map.get(r.date)!.push(r);
     }
     return map;
-  }, [scoped]);
+  }, [reservations]);
 
   const monthName = new Date(cursor.y, cursor.m, 1).toLocaleString(undefined, {
     month: "long",
     year: "numeric",
   });
 
-  // Build a 6×7 grid starting on Monday.
   const firstOfMonth = new Date(cursor.y, cursor.m, 1);
-  const startWeekday = (firstOfMonth.getDay() + 6) % 7; // Mon=0
+  const startWeekday = (firstOfMonth.getDay() + 6) % 7;
   const gridStart = new Date(cursor.y, cursor.m, 1 - startWeekday);
   const days = Array.from({ length: 42 }, (_, i) => {
     const d = new Date(gridStart);
@@ -67,8 +72,8 @@ function CalendarPage() {
 
   const selectedEvents = selected ? (byDate.get(selected) ?? []) : [];
 
-  const detailHref = (r: Reservation) =>
-    r.kind === "internal" ? "/internal/reservations/$id" : "/reservations/$id";
+  const detailHref = (r: ReservationDTO) =>
+    r.reservationType === "internal" ? "/internal/reservations/$id" : "/reservations/$id";
 
   return (
     <AppShell>
@@ -149,9 +154,9 @@ function CalendarPage() {
                       key={e.id}
                       className={cn(
                         "truncate text-[10.5px] leading-tight rounded px-1 py-0.5",
-                        e.status === "approved"
+                        e.status === "approved" || e.status === "confirmed"
                           ? "bg-primary/15 text-primary"
-                          : e.status === "rejected"
+                          : e.status === "rejected" || e.status === "cancelled"
                             ? "bg-destructive/10 text-destructive line-through"
                             : "bg-secondary text-foreground",
                       )}
@@ -184,6 +189,7 @@ function CalendarPage() {
           ) : (
             <ul className="space-y-2">
               {selectedEvents
+                .slice()
                 .sort((a, b) => a.startTime.localeCompare(b.startTime))
                 .map((r) => (
                   <li key={r.id}>
@@ -199,7 +205,7 @@ function CalendarPage() {
                         <div className="flex items-center gap-2">
                           <span className="font-medium truncate">{r.eventName}</span>
                           <StatusBadge status={r.status} />
-                          {r.kind === "internal" && (
+                          {r.reservationType === "internal" && (
                             <span className="text-[10px] uppercase tracking-wider rounded bg-accent text-accent-foreground px-1.5 py-0.5">
                               Internal
                             </span>
