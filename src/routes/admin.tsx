@@ -25,7 +25,9 @@ export const Route = createFileRoute("/admin")({
     ],
   }),
   component: () => (
-    <AuthGuard roles={["admin"]}><AdminPage /></AuthGuard>
+    <AuthGuard roles={["admin"]}>
+      <AdminPage />
+    </AuthGuard>
   ),
 });
 
@@ -52,18 +54,14 @@ function AdminPage() {
 
   const list = useMemo(
     () =>
-      reservations
-        .filter((r) => (tab === "all" ? true : r.status === tab))
-        .sort((a, b) => (a.date < b.date ? -1 : 1)),
+      reservations.filter((r) => (tab === "all" ? true : r.status === tab)).sort((a, b) => (a.date < b.date ? -1 : 1)),
     [reservations, tab],
   );
 
   const submitDecision = () => {
     if (!decision) return;
     decideReservation(decision.r.id, decision.type, notes.trim() || undefined);
-    toast.success(
-      decision.type === "approved" ? "Request approved" : "Request rejected",
-    );
+    toast.success(decision.type === "approved" ? "Request approved" : "Request rejected");
     setDecision(null);
     setNotes("");
   };
@@ -80,7 +78,7 @@ function AdminPage() {
         }
       />
 
-      <div className="inline-flex rounded-md border border-border bg-card p-1 mb-6">
+      {/* <div className="inline-flex rounded-md border border-border bg-card p-1 mb-6">
         {(["pending", "approved", "rejected", "all"] as Tab[]).map((t) => (
           <button
             key={t}
@@ -96,14 +94,12 @@ function AdminPage() {
             <span className="text-xs text-muted-foreground">{counts[t]}</span>
           </button>
         ))}
-      </div>
+      </div> */}
 
       {list.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center">
           <h3 className="text-base font-medium">Nothing here</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            No requests match this filter.
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">No requests match this filter.</p>
         </div>
       ) : (
         <ul className="space-y-3">
@@ -116,80 +112,68 @@ function AdminPage() {
               excludeId: r.id,
             });
             return (
-            <li
-              key={r.id}
-              className="rounded-lg border border-border bg-card p-5 flex flex-col md:flex-row md:items-center gap-4"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Link
-                    to={r.kind === "internal" ? "/internal/reservations/$id" : "/reservations/$id"}
-                    params={{ id: r.id }}
-                    className="font-medium hover:underline truncate"
-                  >
-                    {r.eventName}
-                  </Link>
-                  <StatusBadge status={r.status} />
-                  <span
-                    className={cn(
-                      "text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5",
-                      r.kind === "internal"
-                        ? "bg-accent text-accent-foreground"
-                        : "bg-secondary text-foreground",
-                    )}
-                  >
-                    {r.kind === "internal" ? "Internal" : "User"}
-                  </span>
-                  {conflicts.length > 0 && (
-                    <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider rounded bg-destructive/10 text-destructive px-1.5 py-0.5">
-                      <AlertTriangle className="h-3 w-3" />
-                      {conflicts.length} conflict{conflicts.length > 1 ? "s" : ""}
+              <li
+                key={r.id}
+                className="rounded-lg border border-border bg-card p-5 flex flex-col md:flex-row md:items-center gap-4"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Link
+                      to={r.kind === "internal" ? "/internal/reservations/$id" : "/reservations/$id"}
+                      params={{ id: r.id }}
+                      className="font-medium hover:underline truncate"
+                    >
+                      {r.eventName}
+                    </Link>
+                    <StatusBadge status={r.status} />
+                    <span
+                      className={cn(
+                        "text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5",
+                        r.kind === "internal" ? "bg-accent text-accent-foreground" : "bg-secondary text-foreground",
+                      )}
+                    >
+                      {r.kind === "internal" ? "Internal" : "User"}
                     </span>
+                    {conflicts.length > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider rounded bg-destructive/10 text-destructive px-1.5 py-0.5">
+                        <AlertTriangle className="h-3 w-3" />
+                        {conflicts.length} conflict{conflicts.length > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    {new Date(r.date + "T00:00:00").toLocaleDateString(undefined, { dateStyle: "medium" })} ·{" "}
+                    {r.startTime}–{r.endTime} · {r.room} · {r.attendees} attendees
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">Requested by {r.ownerName || r.ownerEmail}</div>
+                  {conflicts.length > 0 && (
+                    <p className="mt-2 text-xs text-destructive">
+                      Overlaps with: {conflicts.map((c) => `${c.eventName} (${c.startTime}–${c.endTime})`).join(", ")}
+                    </p>
+                  )}
+                  {r.adminNotes && <p className="mt-2 text-xs text-muted-foreground italic">Note: {r.adminNotes}</p>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button asChild variant="ghost" size="sm">
+                    <Link
+                      to={r.kind === "internal" ? "/internal/reservations/$id" : "/reservations/$id"}
+                      params={{ id: r.id }}
+                    >
+                      View <ArrowUpRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
+                  {r.status === "pending" && (
+                    <>
+                      <Button size="sm" variant="outline" onClick={() => setDecision({ r, type: "rejected" })}>
+                        <XCircle className="h-4 w-4" /> Reject
+                      </Button>
+                      <Button size="sm" onClick={() => setDecision({ r, type: "approved" })}>
+                        <CheckCircle2 className="h-4 w-4" /> Approve
+                      </Button>
+                    </>
                   )}
                 </div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  {new Date(r.date + "T00:00:00").toLocaleDateString(undefined, { dateStyle: "medium" })} ·{" "}
-                  {r.startTime}–{r.endTime} · {r.room} · {r.attendees} attendees
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  Requested by {r.ownerName || r.ownerEmail}
-                </div>
-                {conflicts.length > 0 && (
-                  <p className="mt-2 text-xs text-destructive">
-                    Overlaps with: {conflicts.map((c) => `${c.eventName} (${c.startTime}–${c.endTime})`).join(", ")}
-                  </p>
-                )}
-                {r.adminNotes && (
-                  <p className="mt-2 text-xs text-muted-foreground italic">
-                    Note: {r.adminNotes}
-                  </p>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button asChild variant="ghost" size="sm">
-                  <Link
-                    to={r.kind === "internal" ? "/internal/reservations/$id" : "/reservations/$id"}
-                    params={{ id: r.id }}
-                  >
-                    View <ArrowUpRight className="h-3.5 w-3.5" />
-                  </Link>
-                </Button>
-                {r.status === "pending" && (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setDecision({ r, type: "rejected" })}
-                    >
-                      <XCircle className="h-4 w-4" /> Reject
-                    </Button>
-                    <Button size="sm" onClick={() => setDecision({ r, type: "approved" })}>
-                      <CheckCircle2 className="h-4 w-4" /> Approve
-                    </Button>
-                  </>
-                )}
-              </div>
-            </li>
+              </li>
             );
           })}
         </ul>
@@ -206,9 +190,7 @@ function AdminPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {decision?.type === "approved" ? "Approve request" : "Reject request"}
-            </DialogTitle>
+            <DialogTitle>{decision?.type === "approved" ? "Approve request" : "Reject request"}</DialogTitle>
             <DialogDescription>
               {decision?.r.eventName} — {decision?.r.room}
             </DialogDescription>
@@ -222,9 +204,7 @@ function AdminPage() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder={
-                decision?.type === "approved"
-                  ? "Looks great — room is confirmed."
-                  : "Reason for the rejection…"
+                decision?.type === "approved" ? "Looks great — room is confirmed." : "Reason for the rejection…"
               }
             />
           </div>
@@ -238,9 +218,7 @@ function AdminPage() {
             >
               Cancel
             </Button>
-            <Button onClick={submitDecision}>
-              Confirm {decision?.type === "approved" ? "approval" : "rejection"}
-            </Button>
+            <Button onClick={submitDecision}>Confirm {decision?.type === "approved" ? "approval" : "rejection"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
