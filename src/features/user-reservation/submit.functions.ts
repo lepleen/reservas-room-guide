@@ -13,6 +13,27 @@ export const createUserReservation = createServerFn({ method: "POST" })
     const setup = getSetupOption(values.setupOptionId);
     if (!setup) throw new Error("Invalid setup option");
 
+    if (values.startTime >= values.endTime) {
+      throw new Error("End time must be after start time");
+    }
+
+    const { data: conflicts, error: confErr } = await context.supabase.rpc("find_conflicts", {
+      _room: setup.room,
+      _date: values.date,
+      _start: values.startTime,
+      _end: values.endTime,
+      _exclude: null,
+    });
+    if (confErr) throw new Error(confErr.message);
+    if (conflicts && conflicts.length > 0) {
+      const c = conflicts[0];
+      throw new Error(
+        `Time conflict with "${c.event_name}" (${String(c.start_time).slice(0,5)}–${String(c.end_time).slice(0,5)}) in ${setup.room}.`,
+      );
+    }
+
+
+
     const { data: row, error } = await context.supabase
       .from("reservations")
       .insert({
