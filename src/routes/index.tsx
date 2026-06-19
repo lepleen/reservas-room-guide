@@ -48,7 +48,7 @@ function LandingPage() {
         </p>
       </section>
 
-      <section className="mx-auto max-w-5xl px-6 pb-24 grid sm:grid-cols-3 gap-4">
+      <section className="mx-auto max-w-5xl px-6 pb-24 grid sm:grid-cols-2 gap-4">
         <RoleCard
           icon={UserRound}
           title="I'm a user"
@@ -66,7 +66,6 @@ function LandingPage() {
           onClick={() => setRole("internal")}
         />
 
-      
         {/*
         <RoleCard
           icon={ShieldCheck}
