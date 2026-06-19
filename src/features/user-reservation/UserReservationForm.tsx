@@ -119,6 +119,7 @@ export function UserReservationForm() {
   });
 
   return (
+    <>
     <form onSubmit={onSubmit} className="space-y-10 max-w-3xl">
       <Section title="Organizer" description="Who is responsible for this event.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -524,6 +525,13 @@ export function UserReservationForm() {
         </Button>
       </div>
     </form>
+    <RequestAvailabilityDialog
+      open={conflictOpen}
+      onOpenChange={setConflictOpen}
+      draft={draft}
+      onNotifyRequested={setPendingAvailabilityRequest}
+    />
+    </>
   );
 }
 
