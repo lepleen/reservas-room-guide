@@ -27,7 +27,7 @@ export const Route = createFileRoute("/dashboard")({
 type Filter = "upcoming" | "past" | "all";
 
 function DashboardPage() {
-  const { data: reservations = [], isLoading, error } = useQuery(reservationsQueryOptions());
+  const { data: reservations = [], isLoading: _isLoading, error: _error } = useQuery(reservationsQueryOptions());
   const { roles } = useAuth();
   const isAdmin = roles.includes("admin");
   const [filter, setFilter] = useState<Filter>("upcoming");

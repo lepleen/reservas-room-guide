@@ -25,7 +25,7 @@ export const Route = createFileRoute("/calendar")({
 });
 
 function CalendarPage() {
-  const { data: reservations = [], isLoading, error } = useQuery(reservationsQueryOptions());
+  const { data: reservations = [], isLoading: _isLoading, error: _error } = useQuery(reservationsQueryOptions());
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return { y: d.getFullYear(), m: d.getMonth() };

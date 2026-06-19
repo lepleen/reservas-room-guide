@@ -24,7 +24,7 @@ export const Route = createFileRoute("/internal/dashboard")({
 type Filter = "upcoming" | "past" | "all";
 
 function InternalDashboardPage() {
-  const { data: reservations = [], isLoading, error } = useQuery(reservationsQueryOptions());
+  const { data: reservations = [], isLoading: _isLoading, error: _error } = useQuery(reservationsQueryOptions());
   const [filter, setFilter] = useState<Filter>("upcoming");
   const [q, setQ] = useState("");
 
