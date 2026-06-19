@@ -30,6 +30,8 @@ import {
   EQUIPMENT_ITEMS,
 } from "@/lib/reservation-options";
 import { createUserReservation } from "./submit.functions";
+import { useAvailability } from "@/features/shared/useAvailability";
+import { AvailabilityStatus } from "@/features/shared/AvailabilityStatus";
 
 export function UserReservationForm() {
   const navigate = useNavigate();
