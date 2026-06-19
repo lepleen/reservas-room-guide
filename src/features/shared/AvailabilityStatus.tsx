@@ -1,18 +1,21 @@
-import { useState } from "react";
 import { Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { RequestAvailabilityDialog, type AvailabilityRequestPayload } from "@/components/RequestAvailabilityDialog";
 import type { AvailabilityResult } from "@/features/shared/availability.functions";
 
+// Presentation-only: green/red badge + spinner. The conflict modal is owned
+// by the form so it can carry the captured AvailabilityRequest in its own
+// state (ready for the upcoming Waiting List feature).
 type Props = {
-  query: { data: AvailabilityResult | undefined; isFetching: boolean; isError: boolean; error: unknown };
+  query: {
+    data: AvailabilityResult | undefined;
+    isFetching: boolean;
+    isError: boolean;
+    error: unknown;
+  };
   enabled: boolean;
-  payload: AvailabilityRequestPayload | null;
 };
 
-export function AvailabilityStatus({ query, enabled, payload }: Props) {
-  const [open, setOpen] = useState(false);
+export function AvailabilityStatus({ query, enabled }: Props) {
   if (!enabled) return null;
 
   if (query.isFetching) {
@@ -36,38 +39,22 @@ export function AvailabilityStatus({ query, enabled, payload }: Props) {
 
   if (data.available) {
     return (
-      <p className="text-xs text-primary inline-flex items-center gap-1.5">
-        <CheckCircle2 className="h-3 w-3" /> Time slot available.
-      </p>
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+        <CheckCircle2 className="h-3 w-3" /> Available
+      </span>
     );
   }
 
   const c = data.conflicts[0];
   return (
-    <>
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription className="flex flex-col gap-2">
-          <span>
-            This time conflicts with <b>{c.eventName}</b> ({c.startTime}–{c.endTime}, {c.status}).
-          </span>
-          <div>
-            <Button type="button" size="sm" variant="outline" onClick={() => setOpen(true)}>
-              Request availability
-            </Button>
-          </div>
-        </AlertDescription>
-      </Alert>
-      <RequestAvailabilityDialog
-        open={open}
-        onOpenChange={setOpen}
-        payload={
-          payload && {
-            ...payload,
-            conflictNote: `Conflicts with "${c.eventName}" (${c.startTime}–${c.endTime}).`,
-          }
-        }
-      />
-    </>
+    <Alert variant="destructive">
+      <AlertTriangle className="h-4 w-4" />
+      <AlertDescription>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-semibold text-destructive mr-2">
+          Unavailable
+        </span>
+        Conflicts with <b>{c.eventName}</b> ({c.startTime}–{c.endTime}, {c.status}).
+      </AlertDescription>
+    </Alert>
   );
 }

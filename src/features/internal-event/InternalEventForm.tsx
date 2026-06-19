@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Plus, Trash2, AlertTriangle, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,12 @@ import {
 import { createInternalEvent } from "./submit.functions";
 import { useAvailability } from "@/features/shared/useAvailability";
 import { AvailabilityStatus } from "@/features/shared/AvailabilityStatus";
+import { RequestAvailabilityDialog } from "@/components/RequestAvailabilityDialog";
+import { isRoomUnavailable } from "@/features/shared/conflict-error";
+import type {
+  AvailabilityRequest,
+  AvailabilityRequestDraft,
+} from "@/features/shared/availability-request";
 
 export function InternalEventForm() {
   const navigate = useNavigate();
@@ -62,6 +68,25 @@ export function InternalEventForm() {
     !authBypass && Boolean(setup?.room) && Boolean(v.date) && v.startTime < v.endTime;
   const hasConflict = (availability.data?.conflicts.length ?? 0) > 0;
 
+  const [conflictOpen, setConflictOpen] = useState(false);
+  const [pendingAvailabilityRequest, setPendingAvailabilityRequest] =
+    useState<AvailabilityRequest | null>(null);
+
+  const draft: AvailabilityRequestDraft | null = useMemo(() => {
+    if (!setup?.room || !v.setupOptionId || !v.date || !v.startTime || !v.endTime) {
+      return null;
+    }
+    return {
+      requesterName: v.organizerName || undefined,
+      reservationType: "internal",
+      roomId: v.setupOptionId,
+      roomName: setup.room,
+      reservationDate: v.date,
+      startTime: v.startTime,
+      endTime: v.endTime,
+    };
+  }, [setup?.room, v.setupOptionId, v.date, v.startTime, v.endTime, v.organizerName]);
+
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       if (authBypass) {
@@ -69,17 +94,27 @@ export function InternalEventForm() {
         navigate({ to: "/internal/dashboard" });
         return;
       }
+      if (hasConflict) {
+        setConflictOpen(true);
+        return;
+      }
       const res = await submitFn({ data: { values } });
       await queryClient.invalidateQueries({ queryKey: ["reservations"] });
       toast.success("Reservation submitted for review");
       navigate({ to: "/internal/reservations/$id", params: { id: res.id } });
     } catch (err) {
+      if (isRoomUnavailable(err)) {
+        availability.refetch();
+        setConflictOpen(true);
+        return;
+      }
       const msg = err instanceof Error ? err.message : "Failed to submit reservation";
       toast.error(msg);
     }
   });
 
   return (
+    <>
     <form onSubmit={onSubmit} className="space-y-10 max-w-3xl">
       {/* <Section title="Organizer" description="Who is responsible for this event.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -146,15 +181,7 @@ export function InternalEventForm() {
           </Field>
         </div>
 
-        <AvailabilityStatus
-          query={availability}
-          enabled={availabilityEnabled}
-          payload={
-            setup?.room
-              ? { room: setup.room, date: v.date, startTime: v.startTime, endTime: v.endTime }
-              : null
-          }
-        />
+        <AvailabilityStatus query={availability} enabled={availabilityEnabled} />
 
 
         <Field label="Attendees" error={form.formState.errors.attendees?.message}>
@@ -494,6 +521,13 @@ export function InternalEventForm() {
         </Button>
       </div>
     </form>
+    <RequestAvailabilityDialog
+      open={conflictOpen}
+      onOpenChange={setConflictOpen}
+      draft={draft}
+      onNotifyRequested={setPendingAvailabilityRequest}
+    />
+    </>
   );
 }
 

@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { internalEventSchema, type InternalEventValues } from "./schema";
 import { getSetupOption } from "@/lib/reservation-options";
+import { RoomUnavailableError } from "@/features/shared/conflict-error";
+import type { AvailabilityConflict } from "@/features/shared/availability.functions";
 
 export const createInternalEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -26,10 +28,7 @@ export const createInternalEvent = createServerFn({ method: "POST" })
     });
     if (confErr) throw new Error(confErr.message);
     if (conflicts && conflicts.length > 0) {
-      const c = conflicts[0];
-      throw new Error(
-        `Time conflict with "${c.event_name}" (${String(c.start_time).slice(0,5)}–${String(c.end_time).slice(0,5)}) in ${setup.room}.`,
-      );
+      throw new RoomUnavailableError(toAvailabilityConflicts(conflicts));
     }
 
 
@@ -72,12 +71,28 @@ export const createInternalEvent = createServerFn({ method: "POST" })
       .single();
 
     if (error) {
-      // Postgres exclusion constraint violation = concurrent overlapping insert
       const code = (error as { code?: string }).code;
       if (code === "23P01") {
-        throw new Error("This time slot was just booked by someone else. Please pick another time.");
+        // Concurrent overlap rejected by the GIST exclusion constraint.
+        throw new RoomUnavailableError([]);
       }
       throw new Error(error.message);
     }
     return { id: row!.id as string };
   });
+
+function toAvailabilityConflicts(rows: Array<{
+  id: string;
+  event_name: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+}>): AvailabilityConflict[] {
+  return rows.map((r) => ({
+    id: r.id,
+    eventName: r.event_name,
+    startTime: String(r.start_time).slice(0, 5),
+    endTime: String(r.end_time).slice(0, 5),
+    status: r.status,
+  }));
+}
