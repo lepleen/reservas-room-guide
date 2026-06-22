@@ -21,6 +21,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ReservationsNewRouteImport } from './routes/reservations.new'
 import { Route as ReservationsIdRouteImport } from './routes/reservations.$id'
 import { Route as InternalDashboardRouteImport } from './routes/internal.dashboard'
+import { Route as InternalCalendarRouteImport } from './routes/internal.calendar'
+import { Route as AdminDashboardRouteImport } from './routes/admin.dashboard'
+import { Route as AdminCalendarRouteImport } from './routes/admin.calendar'
 import { Route as InternalReservationsNewRouteImport } from './routes/internal.reservations.new'
 import { Route as InternalReservationsIdRouteImport } from './routes/internal.reservations.$id'
 
@@ -84,6 +87,21 @@ const InternalDashboardRoute = InternalDashboardRouteImport.update({
   path: '/internal/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InternalCalendarRoute = InternalCalendarRouteImport.update({
+  id: '/internal/calendar',
+  path: '/internal/calendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminDashboardRoute = AdminDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCalendarRoute = AdminCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AdminRoute,
+} as any)
 const InternalReservationsNewRoute = InternalReservationsNewRouteImport.update({
   id: '/internal/reservations/new',
   path: '/internal/reservations/new',
@@ -97,7 +115,7 @@ const InternalReservationsIdRoute = InternalReservationsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/calendar': typeof CalendarRoute
@@ -105,6 +123,9 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
+  '/admin/calendar': typeof AdminCalendarRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/internal/calendar': typeof InternalCalendarRoute
   '/internal/dashboard': typeof InternalDashboardRoute
   '/reservations/$id': typeof ReservationsIdRoute
   '/reservations/new': typeof ReservationsNewRoute
@@ -113,7 +134,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/calendar': typeof CalendarRoute
@@ -121,6 +142,9 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
+  '/admin/calendar': typeof AdminCalendarRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/internal/calendar': typeof InternalCalendarRoute
   '/internal/dashboard': typeof InternalDashboardRoute
   '/reservations/$id': typeof ReservationsIdRoute
   '/reservations/new': typeof ReservationsNewRoute
@@ -130,7 +154,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/auth': typeof AuthRoute
   '/book': typeof BookRoute
   '/calendar': typeof CalendarRoute
@@ -138,6 +162,9 @@ export interface FileRoutesById {
   '/forgot-password': typeof ForgotPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signin': typeof SigninRoute
+  '/admin/calendar': typeof AdminCalendarRoute
+  '/admin/dashboard': typeof AdminDashboardRoute
+  '/internal/calendar': typeof InternalCalendarRoute
   '/internal/dashboard': typeof InternalDashboardRoute
   '/reservations/$id': typeof ReservationsIdRoute
   '/reservations/new': typeof ReservationsNewRoute
@@ -156,6 +183,9 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/signin'
+    | '/admin/calendar'
+    | '/admin/dashboard'
+    | '/internal/calendar'
     | '/internal/dashboard'
     | '/reservations/$id'
     | '/reservations/new'
@@ -172,6 +202,9 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/signin'
+    | '/admin/calendar'
+    | '/admin/dashboard'
+    | '/internal/calendar'
     | '/internal/dashboard'
     | '/reservations/$id'
     | '/reservations/new'
@@ -188,6 +221,9 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/reset-password'
     | '/signin'
+    | '/admin/calendar'
+    | '/admin/dashboard'
+    | '/internal/calendar'
     | '/internal/dashboard'
     | '/reservations/$id'
     | '/reservations/new'
@@ -197,7 +233,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AuthRoute: typeof AuthRoute
   BookRoute: typeof BookRoute
   CalendarRoute: typeof CalendarRoute
@@ -205,6 +241,7 @@ export interface RootRouteChildren {
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SigninRoute: typeof SigninRoute
+  InternalCalendarRoute: typeof InternalCalendarRoute
   InternalDashboardRoute: typeof InternalDashboardRoute
   ReservationsIdRoute: typeof ReservationsIdRoute
   ReservationsNewRoute: typeof ReservationsNewRoute
@@ -298,6 +335,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InternalDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/internal/calendar': {
+      id: '/internal/calendar'
+      path: '/internal/calendar'
+      fullPath: '/internal/calendar'
+      preLoaderRoute: typeof InternalCalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/dashboard': {
+      id: '/admin/dashboard'
+      path: '/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AdminDashboardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/calendar': {
+      id: '/admin/calendar'
+      path: '/calendar'
+      fullPath: '/admin/calendar'
+      preLoaderRoute: typeof AdminCalendarRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/internal/reservations/new': {
       id: '/internal/reservations/new'
       path: '/internal/reservations/new'
@@ -315,9 +373,21 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminCalendarRoute: typeof AdminCalendarRoute
+  AdminDashboardRoute: typeof AdminDashboardRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminCalendarRoute: AdminCalendarRoute,
+  AdminDashboardRoute: AdminDashboardRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   AuthRoute: AuthRoute,
   BookRoute: BookRoute,
   CalendarRoute: CalendarRoute,
@@ -325,6 +395,7 @@ const rootRouteChildren: RootRouteChildren = {
   ForgotPasswordRoute: ForgotPasswordRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SigninRoute: SigninRoute,
+  InternalCalendarRoute: InternalCalendarRoute,
   InternalDashboardRoute: InternalDashboardRoute,
   ReservationsIdRoute: ReservationsIdRoute,
   ReservationsNewRoute: ReservationsNewRoute,
