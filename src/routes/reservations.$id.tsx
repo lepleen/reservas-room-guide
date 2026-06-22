@@ -10,7 +10,7 @@ import { getSetupOption } from "@/lib/reservation-options";
 
 export const Route = createFileRoute("/reservations/$id")({
   component: () => (
-    <AuthGuard>
+    <AuthGuard roles={["external", "admin"]}>
       <ReservationDetailPage />
     </AuthGuard>
   ),
