@@ -35,6 +35,7 @@ import { useAvailability } from "@/features/shared/useAvailability";
 import { AvailabilityStatus } from "@/features/shared/AvailabilityStatus";
 import { RequestAvailabilityDialog } from "@/components/RequestAvailabilityDialog";
 import { isRoomUnavailable } from "@/features/shared/conflict-error";
+import { SetupStylePreview } from "@/components/SetupStylePreview";
 import type {
   AvailabilityRequest,
   AvailabilityRequestDraft,
@@ -150,29 +151,32 @@ export function UserReservationForm() {
           <Input {...form.register("eventName")} placeholder="All-hands Q3" />
         </Field>
 
-        <Field label="Setup style *" error={form.formState.errors.setupOptionId?.message}>
-          <Select
-            value={v.setupOptionId}
-            onValueChange={(val) => form.setValue("setupOptionId", val, { shouldValidate: true })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {SETUP_OPTIONS.map((o) => (
-                <SelectItem key={o.id} value={o.id}>
-                  {o.label} <span className="text-muted-foreground">· max {o.capacity ?? "Undefined"}</span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {setup && (
-            <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 mt-1">
-              <Users className="h-3 w-3" />
-              {setup.room} · max capacity {setup.capacity != null ? setup.capacity : "Undefined"}
-            </p>
-          )}
-        </Field>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+          <Field label="Setup style *" error={form.formState.errors.setupOptionId?.message}>
+            <Select
+              value={v.setupOptionId}
+              onValueChange={(val) => form.setValue("setupOptionId", val, { shouldValidate: true })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SETUP_OPTIONS.map((o) => (
+                  <SelectItem key={o.id} value={o.id}>
+                    {o.label} <span className="text-muted-foreground">· max {o.capacity ?? "Undefined"}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {setup && (
+              <p className="text-xs text-muted-foreground inline-flex items-center gap-1.5 mt-1">
+                <Users className="h-3 w-3" />
+                {setup.room} · max capacity {setup.capacity != null ? setup.capacity : "Undefined"}
+              </p>
+            )}
+          </Field>
+          <SetupStylePreview setup={setup} />
+        </div>
 
         <div className="grid grid-cols-3 gap-3">
           <Field label="Date *" error={form.formState.errors.date?.message}>
