@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, CalendarClock, Plus, Search, Users, Building2 } from "lucide-react";
+import { ArrowUpRight, CalendarClock, Search, Users, Building2 } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AuthGuard } from "@/components/AuthGuard";
+import { NewRequestButton } from "@/components/NewRequestButton";
 import { reservationsQueryOptions } from "@/features/reservations/queries";
 import type { ReservationDTO } from "@/features/reservations/types";
 
@@ -65,13 +65,7 @@ function InternalDashboardPage() {
       <PageHeader
         title="Your Internal events"
         description="Reservations submitted by the internal team."
-        action={
-          <Button asChild>
-            <Link to="/internal/reservations/new">
-              <Plus className="h-4 w-4" /> New internal request
-            </Link>
-          </Button>
-        }
+        action={<NewRequestButton />}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -114,11 +108,7 @@ function InternalDashboardPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             Submit your first internal reservation.
           </p>
-          <Button asChild className="mt-4">
-            <Link to="/internal/reservations/new">
-              <Plus className="h-4 w-4" /> New internal request
-            </Link>
-          </Button>
+          <NewRequestButton className="mt-4" />
         </div>
       ) : (
         <ul className="space-y-3">

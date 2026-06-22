@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, CalendarClock, Plus, Search, Users } from "lucide-react";
+import { ArrowUpRight, CalendarClock, Search, Users } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AuthGuard } from "@/components/AuthGuard";
+import { NewRequestButton } from "@/components/NewRequestButton";
 import { reservationsQueryOptions } from "@/features/reservations/queries";
 import type { ReservationDTO } from "@/features/reservations/types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -68,13 +68,7 @@ function DashboardPage() {
       <PageHeader
         title="Your external events"
         description="A calm overview of everything you have planned."
-        action={
-          <Button asChild>
-            <Link to="/reservations/new">
-              <Plus className="h-4 w-4" /> New external reservation
-            </Link>
-          </Button>
-        }
+        action={<NewRequestButton />}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -193,11 +187,7 @@ function EmptyState() {
       <p className="mt-1 text-sm text-muted-foreground">
         Start by planning your first reservation.
       </p>
-      <Button asChild className="mt-4">
-        <Link to="/reservations/new">
-          <Plus className="h-4 w-4" /> New external reservation
-        </Link>
-      </Button>
+      <NewRequestButton className="mt-4" />
     </div>
   );
 }
