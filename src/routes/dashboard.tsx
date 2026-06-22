@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, CalendarClock, Search, Users } from "lucide-react";
+import { ArrowUpRight, CalendarClock, Plus, Search, Users } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AuthGuard } from "@/components/AuthGuard";
-import { NewRequestButton } from "@/components/NewRequestButton";
+import { useNewRequestTarget } from "@/lib/use-new-request-target";
 import { reservationsQueryOptions } from "@/features/reservations/queries";
 import type { ReservationDTO } from "@/features/reservations/types";
 import { useAuth } from "@/contexts/AuthContext";
@@ -38,6 +39,8 @@ function DashboardPage() {
   const isAdmin = roles.includes("admin");
   const [filter, setFilter] = useState<Filter>("upcoming");
   const [q, setQ] = useState("");
+  const target = useNewRequestTarget();
+  const newReservationTo = target?.to ?? "/reservations/new";
 
   const todayISO = new Date().toISOString().slice(0, 10);
   const scoped = useMemo(
@@ -68,7 +71,13 @@ function DashboardPage() {
       <PageHeader
         title="Your external events"
         description="A calm overview of everything you have planned."
-        action={<NewRequestButton />}
+        action={
+          <Button asChild>
+            <Link to={newReservationTo}>
+              <Plus className="h-4 w-4" /> New external reservation
+            </Link>
+          </Button>
+        }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -106,7 +115,7 @@ function DashboardPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState />
+        <EmptyState to={newReservationTo} />
       ) : (
         <ul className="space-y-3">
           {filtered.map((r) => (
@@ -180,14 +189,18 @@ function DateBadge({ date }: { date: string }) {
   );
 }
 
-function EmptyState() {
+function EmptyState({ to }: { to: "/reservations/new" | "/internal/reservations/new" }) {
   return (
     <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center">
       <h3 className="text-base font-medium">No events here yet</h3>
       <p className="mt-1 text-sm text-muted-foreground">
         Start by planning your first reservation.
       </p>
-      <NewRequestButton className="mt-4" />
+      <Button asChild className="mt-4">
+        <Link to={to}>
+          <Plus className="h-4 w-4" /> New external reservation
+        </Link>
+      </Button>
     </div>
   );
 }

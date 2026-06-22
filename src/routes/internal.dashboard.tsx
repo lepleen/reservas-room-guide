@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, CalendarClock, Search, Users, Building2 } from "lucide-react";
+import { ArrowUpRight, CalendarClock, Plus, Search, Users, Building2 } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AuthGuard } from "@/components/AuthGuard";
-import { NewRequestButton } from "@/components/NewRequestButton";
+import { useNewRequestTarget } from "@/lib/use-new-request-target";
 import { reservationsQueryOptions } from "@/features/reservations/queries";
 import type { ReservationDTO } from "@/features/reservations/types";
 
@@ -35,6 +36,8 @@ function InternalDashboardPage() {
   } = useQuery(reservationsQueryOptions());
   const [filter, setFilter] = useState<Filter>("upcoming");
   const [q, setQ] = useState("");
+  const target = useNewRequestTarget();
+  const newReservationTo = target?.to ?? "/internal/reservations/new";
 
   const todayISO = new Date().toISOString().slice(0, 10);
   const scoped = useMemo(
@@ -65,7 +68,13 @@ function InternalDashboardPage() {
       <PageHeader
         title="Your Internal events"
         description="Reservations submitted by the internal team."
-        action={<NewRequestButton />}
+        action={
+          <Button asChild>
+            <Link to={newReservationTo}>
+              <Plus className="h-4 w-4" /> New internal request
+            </Link>
+          </Button>
+        }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -108,7 +117,11 @@ function InternalDashboardPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             Submit your first internal reservation.
           </p>
-          <NewRequestButton className="mt-4" />
+          <Button asChild className="mt-4">
+            <Link to={newReservationTo}>
+              <Plus className="h-4 w-4" /> New internal request
+            </Link>
+          </Button>
         </div>
       ) : (
         <ul className="space-y-3">

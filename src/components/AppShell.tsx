@@ -7,12 +7,11 @@ import {
   Plus,
   ShieldCheck,
   Sparkles,
-  UserRound,
   CalendarRange,
 } from "lucide-react";
 import { type ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { NewRequestButton, useNewRequestTarget } from "@/components/NewRequestButton";
+import { useNewRequestTarget } from "@/lib/use-new-request-target";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -27,9 +26,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     : null;
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const target = useNewRequestTarget();
 
-  const newRequest = useNewRequestTarget();
-  const baseNav =
+  const nav =
     role === "admin"
       ? [
           { to: "/admin", label: "Review requests", icon: ShieldCheck },
@@ -40,14 +39,21 @@ export function AppShell({ children }: { children: ReactNode }) {
         ? [
             { to: "/internal/dashboard", label: "Internal events", icon: Building2 },
             { to: "/calendar", label: "Calendar", icon: CalendarRange },
+            {
+              to: target?.to ?? "/internal/reservations/new",
+              label: target?.label ?? "New internal request",
+              icon: Plus,
+            },
           ]
         : [
             { to: "/dashboard", label: "My events", icon: LayoutDashboard },
             { to: "/calendar", label: "Calendar", icon: CalendarRange },
+            {
+              to: target?.to ?? "/reservations/new",
+              label: target?.label ?? "New request",
+              icon: Plus,
+            },
           ];
-  const nav = newRequest
-    ? [...baseNav, { to: newRequest.to, label: newRequest.label, icon: Plus }]
-    : baseNav;
 
   const panelLabel =
     role === "admin" ? "Admin panel" : role === "internal" ? "Internal panel" : "User panel";
@@ -64,37 +70,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="text-xs text-muted-foreground">{panelLabel}</div>
           </div>
         </Link>
-
-        {/* <div className="mb-6 rounded-md border border-sidebar-border p-1 flex">
-          {(["user", "internal", "admin"] as const).map((r) => {
-            const Icon =
-              r === "admin" ? ShieldCheck : r === "internal" ? Building2 : UserRound;
-            const dest =
-              r === "admin"
-                ? "/admin"
-                : r === "internal"
-                  ? "/internal/dashboard"
-                  : "/dashboard";
-            return (
-              <button
-                key={r}
-                onClick={() => {
-                  setRole(r);
-                  navigate({ to: dest });
-                }}
-                className={cn(
-                  "flex-1 inline-flex items-center justify-center gap-1 rounded px-1.5 py-1.5 text-[11px] capitalize transition-colors",
-                  role === r
-                    ? "bg-secondary text-foreground font-medium"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {r}
-              </button>
-            );
-          })}
-        </div> */}
 
         <nav className="flex-1 space-y-1">
           {nav.map((item) => {
@@ -168,8 +143,20 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <ShieldCheck className="h-3.5 w-3.5" /> Review
           </Link>
+        ) : role === "internal" ? (
+          <Link
+            to={target?.to ?? "/internal/reservations/new"}
+            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+          >
+            <Plus className="h-3.5 w-3.5" /> New
+          </Link>
         ) : (
-          <NewRequestButton size="sm" compact />
+          <Link
+            to={target?.to ?? "/reservations/new"}
+            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
+          >
+            <Plus className="h-3.5 w-3.5" /> New
+          </Link>
         )}
       </div>
 
