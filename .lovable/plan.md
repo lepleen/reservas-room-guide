@@ -1,143 +1,212 @@
-# Per-Role Navigation Refactor (final)
+# Role-isolated routes with presentational shared components
 
-Architectural refactor only. UI, spacing, icons, typography, and responsive behavior remain identical. Auth/DB role values are not touched.
+## Data layer (server-side filtering)
 
-## Folder structure
+`src/features/admin/reservations.functions.ts` — add a shared internal helper plus three explicit public server functions. No `"all"` value escapes the public API.
 
-```
-src/
-  config/
-    routes.ts                 # shared route constants
-    navigation/
-      types.ts                # NavRole, NavItem, RoleNavigation, RoleConfig
-      admin.ts internal.ts external.ts
-      index.ts                # navigationByRole
-    actions/
-      admin.ts internal.ts external.ts
-      index.ts                # actionsByRole
-  hooks/
-    useNavigation.ts          # useNavigation, useRoleActions, useNavRole
-  lib/
-    use-new-request-target.ts # refactored to read actions config
-  components/
-    AppShell.tsx              # generic shell; no nav arrays
-```
-
-## Shared route constants
-
-### `src/config/routes.ts`
-Single source of truth for every route used by navigation/actions:
 ```ts
-export const ROUTES = {
-  admin: "/admin",
-  calendar: "/calendar",
-  dashboard: "/dashboard",
-  internalDashboard: "/internal/dashboard",
-  newReservation: "/reservations/new",
-  newInternalReservation: "/internal/reservations/new",
-} as const;
-export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
-```
-All navigation and action configs import from this file — no hardcoded route strings elsewhere in `src/config/**`.
+type ReservationScope = "external" | "internal";
 
-## Types (extensible)
-
-### `src/config/navigation/types.ts`
-```ts
-export type NavRole = "admin" | "internal" | "external";
-
-export type NavItem = {
-  id: string;        // e.g. "internal.events"
-  label: string;
-  icon: LucideIcon;
-  to: AppRoute;
-};
-
-export type RoleNavigation = {
-  panelLabel: string;
-  items: NavItem[];
-};
-
-export type ActionItem = {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-  to: AppRoute;
-};
-
-export type RoleActions = {
-  primary?: ActionItem;
-  // future: secondary?: ActionItem[];
-};
-
-// Forward-compatible umbrella — not used by AppShell today, but lets each
-// role grow with permissions / feature flags / dashboard config without
-// another refactor.
-export type RoleConfig = {
-  navigation: RoleNavigation;
-  actions: RoleActions;
-  // future fields (optional, additive):
-  // permissions?: string[];
-  // featureFlags?: Record<string, boolean>;
-  // dashboard?: { defaultView?: string };
-  // layout?: { sidebar?: "expanded" | "collapsed" };
-};
-```
-
-`navigationByRole` and `actionsByRole` remain as today (small, focused maps consumed by hooks). When a role needs additional config, add the property to `RoleConfig` and a sibling `<role>.config.ts` — no AppShell change required.
-
-## Per-role configs
-
-`src/config/navigation/{admin,internal,external}.ts` — `RoleNavigation` with same labels/icons as today, routes via `ROUTES.*`. Items use stable IDs (`admin.review`, `admin.calendar`, `admin.all-events`, `internal.events`, `internal.calendar`, `internal.new-request`, `external.my-events`, `external.calendar`, `external.new-request`).
-
-`src/config/actions/{admin,internal,external}.ts` — `RoleActions.primary` matching today's mobile CTA (admin: ShieldCheck/"Review"/`ROUTES.admin`; internal: Plus/"New"/`ROUTES.newInternalReservation`; external: Plus/"New"/`ROUTES.newReservation`).
-
-## Single role-mapping source of truth
-
-### `src/hooks/useNavigation.ts`
-```ts
-import { useAuth } from "@/contexts/AuthContext";
-
-export function useNavRole(): NavRole | null {
-  const { roles, isAuthenticated } = useAuth();
-  if (!isAuthenticated) return null;
-  if (roles.includes("admin")) return "admin";
-  if (roles.includes("internal")) return "internal";
-  return "external";
+async function queryReservations(supabase, scope?: ReservationScope) {
+  let q = supabase.from("reservations").select("*")
+    .order("date", { ascending: true })
+    .order("start_time", { ascending: true });
+  if (scope === "external") q = q.eq("kind", "user");
+  if (scope === "internal") q = q.eq("kind", "internal");
+  return q;
 }
 
-export function useNavigation(role: NavRole) { return navigationByRole[role]; }
-export function useRoleActions(role: NavRole) { return actionsByRole[role]; }
+export const listExternalReservations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => { ... queryReservations(supabase, "external") ... });
+
+export const listInternalReservations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => { ... queryReservations(supabase, "internal") ... });
+
+export const listAllReservations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role",
+      { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    return queryReservations(supabase /* no scope */);
+  });
 ```
 
-`useNavRole` is the ONLY role → NavRole mapping in the project. `AppShell`, `useNewRequestTarget`, and any future role-aware UI consume it.
+RLS already enforces:
+- external user → only `owner_id = auth.uid()`
+- internal user → own rows + every `kind = 'internal'`
+- admin → all rows
 
-## Edits
+The added `.eq("kind", …)` is a scope filter, not authorization. `listAllReservations` re-checks the admin role server-side before bypassing the scope filter, matching the existing pattern used by `updateReservationStatus`.
 
-### `src/components/AppShell.tsx`
-- Remove inline `nav` array, `panelLabel` ternary, three-branch mobile CTA, `useNewRequestTarget` import, and the local `role` ternary.
-- Replace with:
-  ```ts
-  const navRole = useNavRole();
-  if (!navRole) { /* render existing guest sidebar/topbar branches unchanged */ }
-  const { panelLabel, items } = useNavigation(navRole);
-  const { primary } = useRoleActions(navRole);
-  ```
-- Sidebar maps `items` with identical JSX, classes, active-state logic, icons; keys by `item.id`.
-- Mobile top bar renders one `<Link>` from `primary` with the exact wrapper classes used today. If `primary` is undefined, render nothing.
-- Guest (unauthenticated) sidebar footer and "Sign in" link stay exactly as today.
+The existing `listReservations` export is removed; nothing else depends on it once dashboards/calendars use the scoped variants. `getReservationById` and the mutation server functions are untouched.
 
-### `src/lib/use-new-request-target.ts` — refactored, kept
-Consumed by `dashboard.tsx` and `internal.dashboard.tsx` (unchanged). Now reads from the same role mapping and action config:
+## Query keys (structured hierarchy)
+
+`src/features/reservations/queries.ts`
+
 ```ts
-export function useNewRequestTarget() {
-  const navRole = useNavRole();
-  if (!navRole || navRole === "admin") return null;
-  const primary = actionsByRole[navRole].primary;
-  return primary ? { to: primary.to, label: primary.label } : null;
-}
+export const reservationKeys = {
+  all: ["reservations"] as const,
+  lists: () => [...reservationKeys.all, "list"] as const,
+  list: (scope: "external" | "internal" | "all") =>
+    [...reservationKeys.lists(), scope] as const,
+  detail: (id: string) => [...reservationKeys.all, "detail", id] as const,
+};
+
+export const externalReservationsQueryOptions = () => queryOptions({
+  queryKey: reservationKeys.list("external"),
+  queryFn: () => listExternalReservations(),
+});
+export const internalReservationsQueryOptions = () => queryOptions({ ... "internal" });
+export const allReservationsQueryOptions      = () => queryOptions({ ... "all" });
+
+export const reservationQueryOptions = (id: string) => queryOptions({
+  queryKey: reservationKeys.detail(id),
+  queryFn: () => getReservationById({ data: { id } }),
+});
 ```
-No duplicated routes, no duplicated role resolution.
+
+Existing mutations that invalidate `["reservations"]` continue to work — the prefix `reservationKeys.all` matches every list and detail entry.
+
+## Routes (per role)
+
+```text
+src/routes/
+  dashboard.tsx               -> External "My events"          (existing URL kept)
+  internal.dashboard.tsx      -> Internal "Internal events"    (existing)
+  admin.dashboard.tsx         -> NEW  /admin/dashboard         (Admin "All events")
+  calendar.tsx                -> External calendar             (existing URL kept)
+  internal.calendar.tsx       -> NEW  /internal/calendar
+  admin.calendar.tsx          -> NEW  /admin/calendar
+  admin.tsx                   -> Admin review (existing)
+```
+
+Each route file is a thin wrapper:
+1. `AuthGuard` with role list.
+2. Loader: `context.queryClient.ensureQueryData(<scoped>QueryOptions())`.
+3. Renders the shared presentational component, passing role-appropriate copy and callbacks built from `ROUTES`.
+
+The shared components do not import `ROUTES`, `useAuth`, `useNavRole`, or any hook beyond presentational concerns.
+
+## Shared presentational components
+
+### `src/features/calendar/CalendarView.tsx` (NEW)
+
+Props:
+```ts
+type CalendarViewProps = {
+  reservations: ReservationDTO[];
+  title: string;
+  description: string;
+  onReservationClick: (r: ReservationDTO) => void;
+};
+```
+Owns the month grid, navigation chevrons, "Today", day-detail list — verbatim from current `calendar.tsx`. Clicking a row calls `onReservationClick(r)`; no `<Link>` for reservation details inside the component.
+
+### `src/features/dashboard/ReservationDashboard.tsx` (NEW)
+
+Props:
+```ts
+type DashboardStat = { label: string; value: string; icon: ComponentType<{ className?: string }> };
+
+type DashboardCta = { label: string; onClick: () => void };
+
+type ReservationDashboardProps = {
+  reservations: ReservationDTO[];
+  title: string;
+  description: string;
+  stats: DashboardStat[];
+  cta?: DashboardCta;
+  emptyTitle: string;
+  emptyDescription: string;
+  emptyCta?: DashboardCta;
+  onReservationClick: (r: ReservationDTO) => void;
+};
+```
+Owns Stat cards, filter tabs, search input, list rows, empty state. No role logic, no router imports, no `ROUTES`. Navigation is performed by handlers passed in by the wrapper.
+
+### Wrapper navigation pattern
+
+Each wrapper uses `useNavigate()` and `ROUTES` to build the callbacks:
+
+```ts
+const navigate = useNavigate();
+const goToDetail = (r: ReservationDTO) => navigate({
+  to: r.reservationType === "internal" ? "/internal/reservations/$id" : "/reservations/$id",
+  params: { id: r.id },
+});
+const goToNew = () => navigate({ to: ROUTES.newReservation });
+```
+
+For admin the detail navigation uses the same mixed mapping because admins can drill into either kind.
+
+## Navigation configuration
+
+`src/config/routes.ts` — add:
+```ts
+adminDashboard: "/admin/dashboard",
+internalCalendar: "/internal/calendar",
+adminCalendar: "/admin/calendar",
+```
+
+`src/config/navigation/internal.ts` — `internal.calendar.to = ROUTES.internalCalendar`.
+
+`src/config/navigation/admin.ts`
+- `admin.calendar.to = ROUTES.adminCalendar`
+- `admin.all-events.to = ROUTES.adminDashboard`
+
+`AppShell`, `useNavigation`, `useRoleActions`, `useNewRequestTarget`, `actionsByRole` — unchanged.
+
+## Direct-URL access enforcement
+
+`AuthGuard` already redirects when `roles` does not include any of the user's roles (sends to `/`). The new and existing routes apply guards:
+
+| Route | Guard |
+|---|---|
+| `/dashboard` | `["user", "internal", "admin"]` (external page; internal/admin allowed via sidebar from admin) — but admin lands on `/admin/dashboard` via nav. To enforce role isolation: tighten to `["user"]` only? See note below. |
+| `/calendar` | `["user"]` |
+| `/internal/dashboard` | `["internal", "admin"]` (existing) |
+| `/internal/calendar` | `["internal", "admin"]` |
+| `/admin` | `["admin"]` (existing) |
+| `/admin/dashboard` | `["admin"]` |
+| `/admin/calendar` | `["admin"]` |
+| `/reservations/new` | `["user"]` |
+| `/internal/reservations/new` | `["internal", "admin"]` (existing, unchanged — out of scope) |
+
+Decision: keep `/dashboard` and `/calendar` open to all authenticated roles. Rationale: the previous behavior allowed any signed-in user to reach `/dashboard` (it just filtered data). The acceptance criteria require navigation isolation, not URL-blocking. The sidebar never offers an internal/admin user a link into `/dashboard` or `/calendar`, so direct-URL access is the only way in, and the data they would see is already restricted by RLS + the external-scoped query. If you want hard blocking, the guards can be tightened — flagging here so the choice is explicit before implementation.
+
+Recommended explicit answer for this task: **tighten guards** so `/dashboard` and `/calendar` require `["user"]`, `/internal/*` requires `["internal","admin"]`, `/admin/*` requires `["admin"]`. This satisfies the "no role may access another role's workflow via direct URL" requirement. Admins still reach everything they need via `/admin/*`. If you prefer to keep them open for admin observability, say so and I will keep them at the broader role set.
+
+## Files to create
+- `src/features/calendar/CalendarView.tsx`
+- `src/features/dashboard/ReservationDashboard.tsx`
+- `src/routes/admin.dashboard.tsx`
+- `src/routes/internal.calendar.tsx`
+- `src/routes/admin.calendar.tsx`
+
+## Files to modify
+- `src/features/admin/reservations.functions.ts` — split list fn into three scoped fns
+- `src/features/reservations/queries.ts` — `reservationKeys` + three scoped query options
+- `src/routes/dashboard.tsx` — thin wrapper (external)
+- `src/routes/internal.dashboard.tsx` — thin wrapper (internal)
+- `src/routes/calendar.tsx` — thin wrapper (external)
+- `src/routes/admin.tsx` — use `allReservationsQueryOptions`
+- `src/config/routes.ts` — three new constants
+- `src/config/navigation/internal.ts`
+- `src/config/navigation/admin.ts`
 
 ## Out of scope
-Auth, DB role values, permissions enforcement, routes themselves, reservation logic, dashboards, server functions, styling, sidebar width, spacing, icons, typography, mobile layout.
+Auth flows, RLS policies, reservation forms, server-function security model, AppShell layout/spacing/icons/typography, sidebar appearance, mobile bar, color tokens, design tokens, reservation business logic.
+
+## Acceptance after implementation
+- External (`user`): `/dashboard` (external scope) · `/calendar` (external scope) · `/reservations/new`. Direct hits on `/internal/*` or `/admin/*` redirect to `/`.
+- Internal: `/internal/dashboard` · `/internal/calendar` · `/internal/reservations/new`. Direct hits on `/admin/*` and `/dashboard`/`/calendar` redirect to `/`.
+- Admin: `/admin` · `/admin/dashboard` · `/admin/calendar`. No "New request" CTA anywhere.
+- Server returns only role-relevant rows; RLS continues to enforce authorization.
+- `CalendarView` and `ReservationDashboard` contain zero references to `useAuth`, `useNavRole`, `ROUTES`, or `Link`. All navigation handled by wrappers.
+- Query keys structured as `["reservations", "list", <scope>]` and `["reservations", "detail", <id>]`.
+
+Please confirm the guard-tightening recommendation (or override) before I proceed.
