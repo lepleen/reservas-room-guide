@@ -11,7 +11,7 @@ export const Route = createFileRoute("/reservations/new")({
     ],
   }),
   component: () => (
-    <AuthGuard>
+    <AuthGuard roles={["external"]}>
       <NewReservationPage />
     </AuthGuard>
   ),

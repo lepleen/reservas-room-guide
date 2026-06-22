@@ -75,16 +75,53 @@ async function attachProfiles(
   return rows.map((r) => mapRow(r, r.owner_id ? profileMap.get(r.owner_id) : null));
 }
 
-export const listReservations = createServerFn({ method: "GET" })
+type ReservationScope = "external" | "internal";
+
+async function queryReservations(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  scope?: ReservationScope,
+): Promise<ReservationDTO[]> {
+  let q = supabase
+    .from("reservations")
+    .select("*")
+    .order("date", { ascending: true })
+    .order("start_time", { ascending: true });
+  if (scope === "external") q = q.eq("kind", "user");
+  if (scope === "internal") q = q.eq("kind", "internal");
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  return attachProfiles(supabase, data ?? []);
+}
+
+/**
+ * External reservations only. RLS additionally restricts visibility to rows
+ * the caller owns (or all rows for admins).
+ */
+export const listExternalReservations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => queryReservations(context.supabase, "external"));
+
+/**
+ * Internal reservations only. RLS allows internal users to see every internal
+ * row plus their own; admins see all.
+ */
+export const listInternalReservations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => queryReservations(context.supabase, "internal"));
+
+/**
+ * All reservations across both kinds. Admin-only — verified server-side.
+ */
+export const listAllReservations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("reservations")
-      .select("*")
-      .order("date", { ascending: true })
-      .order("start_time", { ascending: true });
-    if (error) throw new Error(error.message);
-    return attachProfiles(context.supabase, data ?? []);
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Forbidden");
+    return queryReservations(context.supabase);
   });
 
 export const getReservationById = createServerFn({ method: "GET" })

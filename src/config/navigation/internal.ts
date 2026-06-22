@@ -6,7 +6,7 @@ export const internalNavigation: RoleNavigation = {
   panelLabel: "Internal panel",
   items: [
     { id: "internal.events", label: "Internal events", icon: Building2, to: ROUTES.internalDashboard },
-    { id: "internal.calendar", label: "Calendar", icon: CalendarRange, to: ROUTES.calendar },
+    { id: "internal.calendar", label: "Calendar", icon: CalendarRange, to: ROUTES.internalCalendar },
     {
       id: "internal.new-request",
       label: "New internal request",
