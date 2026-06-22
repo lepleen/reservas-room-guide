@@ -22,7 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { reservationsQueryOptions, reservationsQueryKey } from "@/features/reservations/queries";
+import { allReservationsQueryOptions, reservationKeys } from "@/features/reservations/queries";
 import { updateReservationStatus } from "@/features/admin/reservations.functions";
 import type { ReservationDTO, ReservationStatus } from "@/features/reservations/types";
 import { cn } from "@/lib/utils";
@@ -62,7 +62,7 @@ function findOverlaps(rows: ReservationDTO[], r: ReservationDTO) {
 }
 
 function AdminPage() {
-  const { data: reservations = [], isLoading, error } = useQuery(reservationsQueryOptions());
+  const { data: reservations = [], isLoading, error } = useQuery(allReservationsQueryOptions());
   const queryClient = useQueryClient();
   const updateStatus = useServerFn(updateReservationStatus);
 
@@ -106,7 +106,7 @@ function AdminPage() {
         cancelled: "Request cancelled",
       };
       toast.success(labels[decision.type]);
-      await queryClient.invalidateQueries({ queryKey: reservationsQueryKey });
+      await queryClient.invalidateQueries({ queryKey: reservationKeys.all });
       setDecision(null);
       setNotes("");
     } catch (e) {
