@@ -1,20 +1,15 @@
-import { useAuth } from "@/contexts/AuthContext";
+import { useNavRole } from "@/hooks/useNavigation";
+import { actionsByRole } from "@/config/actions";
 
-export type NewRequestTarget =
-  | { to: "/reservations/new" | "/internal/reservations/new"; label: string }
-  | null;
+export type NewRequestTarget = { to: string; label: string } | null;
 
 /**
- * Centralized role-based destination for the "New request" action.
- * - admin → null (admins don't create their own reservations)
- * - internal → /internal/reservations/new
- * - external (default authenticated user) → /reservations/new
+ * Role-aware destination for the "New request" CTA on dashboards.
+ * Reads from the shared actions config so routes/labels are not duplicated.
  */
 export function useNewRequestTarget(): NewRequestTarget {
-  const { roles, isAuthenticated } = useAuth();
-  if (!isAuthenticated) return null;
-  if (roles.includes("admin")) return null;
-  if (roles.includes("internal"))
-    return { to: "/internal/reservations/new", label: "New internal request" };
-  return { to: "/reservations/new", label: "New external reservation" };
+  const navRole = useNavRole();
+  if (!navRole || navRole === "admin") return null;
+  const primary = actionsByRole[navRole].primary;
+  return primary ? { to: primary.to, label: primary.label } : null;
 }
