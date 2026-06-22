@@ -19,6 +19,14 @@ const ROLES = [
     cta: "Continue as Internal User",
     to: "/internal/dashboard",
   },
+  {
+    icon: Building2,
+    title: "Admin",
+    description:
+      "For employees and internal staff creating reservations for meetings, events, or corporate activities.",
+    cta: "Admin",
+    to: "/admin/",
+  },
 ] as const;
 
 export function RoleGateway() {
@@ -35,7 +43,7 @@ export function RoleGateway() {
         </p>
       </div>
 
-      <div className="mt-12 grid gap-5 sm:grid-cols-2">
+      <div className="mt-12 grid gap-5 sm:grid-cols-3">
         {ROLES.map(({ icon: Icon, title, description, cta, to }) => (
           <div key={title} className="rounded-xl border border-border bg-card p-7 flex flex-col">
             <div className="h-11 w-11 rounded-md bg-secondary flex items-center justify-center mb-5">

@@ -65,7 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </Link>
 
-        <div className="mb-6 rounded-md border border-sidebar-border p-1 flex">
+        {/* <div className="mb-6 rounded-md border border-sidebar-border p-1 flex">
           {(["user", "internal", "admin"] as const).map((r) => {
             const Icon =
               r === "admin" ? ShieldCheck : r === "internal" ? Building2 : UserRound;
@@ -94,7 +94,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </button>
             );
           })}
-        </div>
+        </div> */}
 
         <nav className="flex-1 space-y-1">
           {nav.map((item) => {
