@@ -1,62 +1,21 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import {
-  Building2,
-  CalendarDays,
-  LayoutDashboard,
-  LogOut,
-  Plus,
-  ShieldCheck,
-  Sparkles,
-  CalendarRange,
-} from "lucide-react";
+import { CalendarDays, LogOut, Sparkles } from "lucide-react";
 import { type ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNewRequestTarget } from "@/lib/use-new-request-target";
+import { useNavRole, useNavigation, useRoleActions } from "@/hooks/useNavigation";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user: authUser, profile, roles, signOut } = useAuth();
-  const role: "admin" | "internal" | "user" = roles.includes("admin")
-    ? "admin"
-    : roles.includes("internal")
-      ? "internal"
-      : "user";
+  const { user: authUser, profile, signOut } = useAuth();
   const user = authUser
     ? { name: profile?.full_name || authUser.email || "Account", email: authUser.email ?? "" }
     : null;
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const target = useNewRequestTarget();
 
-  const nav =
-    role === "admin"
-      ? [
-          { to: "/admin", label: "Review requests", icon: ShieldCheck },
-          { to: "/calendar", label: "Calendar", icon: CalendarRange },
-          { to: "/dashboard", label: "All events", icon: LayoutDashboard },
-        ]
-      : role === "internal"
-        ? [
-            { to: "/internal/dashboard", label: "Internal events", icon: Building2 },
-            { to: "/calendar", label: "Calendar", icon: CalendarRange },
-            {
-              to: target?.to ?? "/internal/reservations/new",
-              label: target?.label ?? "New internal request",
-              icon: Plus,
-            },
-          ]
-        : [
-            { to: "/dashboard", label: "My events", icon: LayoutDashboard },
-            { to: "/calendar", label: "Calendar", icon: CalendarRange },
-            {
-              to: target?.to ?? "/reservations/new",
-              label: target?.label ?? "New request",
-              icon: Plus,
-            },
-          ];
-
-  const panelLabel =
-    role === "admin" ? "Admin panel" : role === "internal" ? "Internal panel" : "User panel";
+  const navRole = useNavRole();
+  const { panelLabel, items } = useNavigation(navRole);
+  const { primary } = useRoleActions(navRole);
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -72,14 +31,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
 
         <nav className="flex-1 space-y-1">
-          {nav.map((item) => {
+          {items.map((item) => {
             const active =
               pathname === item.to ||
               (item.to !== "/dashboard" && item.to !== "/" && pathname.startsWith(item.to));
             const Icon = item.icon;
             return (
               <Link
-                key={item.to}
+                key={item.id}
                 to={item.to}
                 className={cn(
                   "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
@@ -136,28 +95,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <span className="text-sm font-semibold">Roomr</span>
         </Link>
-        {role === "admin" ? (
+        {primary ? (
           <Link
-            to="/admin"
+            to={primary.to}
             className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
           >
-            <ShieldCheck className="h-3.5 w-3.5" /> Review
+            <primary.icon className="h-3.5 w-3.5" /> {primary.label}
           </Link>
-        ) : role === "internal" ? (
-          <Link
-            to={target?.to ?? "/internal/reservations/new"}
-            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-          >
-            <Plus className="h-3.5 w-3.5" /> New
-          </Link>
-        ) : (
-          <Link
-            to={target?.to ?? "/reservations/new"}
-            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-          >
-            <Plus className="h-3.5 w-3.5" /> New
-          </Link>
-        )}
+        ) : null}
       </div>
 
       <main className="flex-1 md:pt-0 pt-14 min-w-0">
