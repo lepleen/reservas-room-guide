@@ -6,10 +6,11 @@ import type { NavRole, RoleNavigation, RoleActions } from "@/config/navigation/t
 /**
  * Single source of truth for mapping the authenticated user's roles to a
  * presentation-layer NavRole. Auth/DB role values are not modified.
+ * Unauthenticated visitors fall through to "external" to preserve the
+ * existing shell layout for guests.
  */
-export function useNavRole(): NavRole | null {
-  const { roles, isAuthenticated } = useAuth();
-  if (!isAuthenticated) return null;
+export function useNavRole(): NavRole {
+  const { roles } = useAuth();
   if (roles.includes("admin")) return "admin";
   if (roles.includes("internal")) return "internal";
   return "external";
