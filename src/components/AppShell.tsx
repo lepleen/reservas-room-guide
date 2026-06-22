@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { type ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { NewRequestButton, useNewRequestTarget } from "@/components/NewRequestButton";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -27,7 +28,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const nav =
+  const newRequest = useNewRequestTarget();
+  const baseNav =
     role === "admin"
       ? [
           { to: "/admin", label: "Review requests", icon: ShieldCheck },
@@ -38,13 +40,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         ? [
             { to: "/internal/dashboard", label: "Internal events", icon: Building2 },
             { to: "/calendar", label: "Calendar", icon: CalendarRange },
-            { to: "/internal/reservations/new", label: "New internal request", icon: Plus },
           ]
         : [
             { to: "/dashboard", label: "My events", icon: LayoutDashboard },
             { to: "/calendar", label: "Calendar", icon: CalendarRange },
-            { to: "/reservations/new", label: "New request", icon: Plus },
           ];
+  const nav = newRequest
+    ? [...baseNav, { to: newRequest.to, label: newRequest.label, icon: Plus }]
+    : baseNav;
 
   const panelLabel =
     role === "admin" ? "Admin panel" : role === "internal" ? "Internal panel" : "User panel";
@@ -165,20 +168,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <ShieldCheck className="h-3.5 w-3.5" /> Review
           </Link>
-        ) : role === "internal" ? (
-          <Link
-            to="/internal/reservations/new"
-            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-          >
-            <Plus className="h-3.5 w-3.5" /> New
-          </Link>
         ) : (
-          <Link
-            to="/reservations/new"
-            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-          >
-            <Plus className="h-3.5 w-3.5" /> New
-          </Link>
+          <NewRequestButton size="sm" compact />
         )}
       </div>
 
