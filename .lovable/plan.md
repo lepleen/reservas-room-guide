@@ -1,212 +1,242 @@
-# Role-isolated routes with presentational shared components
+## Goal
 
-## Data layer (server-side filtering)
+Refactor `UserReservationForm` and `InternalEventForm` into a shared, accessible, domain-agnostic multi-step Wizard. Zero changes to schemas, server functions, RPCs, availability logic, conflict handling, auth, routes, or submission payloads. Purely a UI/structural refactor.
 
-`src/features/admin/reservations.functions.ts` — add a shared internal helper plus three explicit public server functions. No `"all"` value escapes the public API.
+## Domain-agnostic Wizard package — `src/components/forms/wizard/`
 
-```ts
-type ReservationScope = "external" | "internal";
+Imports only React, react-hook-form, framer-motion, lucide-react, `@/components/ui/*`, `@/lib/utils`. MUST NOT import from `@/features/*` or `@/lib/reservation-options`.
 
-async function queryReservations(supabase, scope?: ReservationScope) {
-  let q = supabase.from("reservations").select("*")
-    .order("date", { ascending: true })
-    .order("start_time", { ascending: true });
-  if (scope === "external") q = q.eq("kind", "user");
-  if (scope === "internal") q = q.eq("kind", "internal");
-  return q;
-}
+### Public API (small, stable)
 
-export const listExternalReservations = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => { ... queryReservations(supabase, "external") ... });
-
-export const listInternalReservations = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => { ... queryReservations(supabase, "internal") ... });
-
-export const listAllReservations = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role",
-      { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Forbidden");
-    return queryReservations(supabase /* no scope */);
-  });
+```tsx
+<Wizard
+  steps={steps}
+  onSubmit={onSubmit}
+  onCancel={onCancel}
+  submitDisabled={bool}
+  submitLabel?={string}
+/>
 ```
 
-RLS already enforces:
-- external user → only `owner_id = auth.uid()`
-- internal user → own rows + every `kind = 'internal'`
-- admin → all rows
+Rendered inside the wrapper's `<FormProvider>` — wrappers own the form instance, mutations, dialogs, navigation.
 
-The added `.eq("kind", …)` is a scope filter, not authorization. `listAllReservations` re-checks the admin role server-side before bypassing the scope filter, matching the existing pattern used by `updateReservationStatus`.
-
-The existing `listReservations` export is removed; nothing else depends on it once dashboards/calendars use the scoped variants. `getReservationById` and the mutation server functions are untouched.
-
-## Query keys (structured hierarchy)
-
-`src/features/reservations/queries.ts`
+### Step definition
 
 ```ts
-export const reservationKeys = {
-  all: ["reservations"] as const,
-  lists: () => [...reservationKeys.all, "list"] as const,
-  list: (scope: "external" | "internal" | "all") =>
-    [...reservationKeys.lists(), scope] as const,
-  detail: (id: string) => [...reservationKeys.all, "detail", id] as const,
-};
-
-export const externalReservationsQueryOptions = () => queryOptions({
-  queryKey: reservationKeys.list("external"),
-  queryFn: () => listExternalReservations(),
-});
-export const internalReservationsQueryOptions = () => queryOptions({ ... "internal" });
-export const allReservationsQueryOptions      = () => queryOptions({ ... "all" });
-
-export const reservationQueryOptions = (id: string) => queryOptions({
-  queryKey: reservationKeys.detail(id),
-  queryFn: () => getReservationById({ data: { id } }),
-});
-```
-
-Existing mutations that invalidate `["reservations"]` continue to work — the prefix `reservationKeys.all` matches every list and detail entry.
-
-## Routes (per role)
-
-```text
-src/routes/
-  dashboard.tsx               -> External "My events"          (existing URL kept)
-  internal.dashboard.tsx      -> Internal "Internal events"    (existing)
-  admin.dashboard.tsx         -> NEW  /admin/dashboard         (Admin "All events")
-  calendar.tsx                -> External calendar             (existing URL kept)
-  internal.calendar.tsx       -> NEW  /internal/calendar
-  admin.calendar.tsx          -> NEW  /admin/calendar
-  admin.tsx                   -> Admin review (existing)
-```
-
-Each route file is a thin wrapper:
-1. `AuthGuard` with role list.
-2. Loader: `context.queryClient.ensureQueryData(<scoped>QueryOptions())`.
-3. Renders the shared presentational component, passing role-appropriate copy and callbacks built from `ROUTES`.
-
-The shared components do not import `ROUTES`, `useAuth`, `useNavRole`, or any hook beyond presentational concerns.
-
-## Shared presentational components
-
-### `src/features/calendar/CalendarView.tsx` (NEW)
-
-Props:
-```ts
-type CalendarViewProps = {
-  reservations: ReservationDTO[];
+type WizardStepDef<TValues extends FieldValues> = {
+  id: string;
   title: string;
-  description: string;
-  onReservationClick: (r: ReservationDTO) => void;
+  description?: string;
+  icon?: LucideIcon;
+  component: ComponentType;
+  validationFields: FieldPath<TValues>[];
+  isOptional?: boolean;
+  beforeNext?: (form: UseFormReturn<TValues>) => boolean | Promise<boolean>;
+  beforeEnter?: (form: UseFormReturn<TValues>) => void | Promise<void>;
 };
 ```
-Owns the month grid, navigation chevrons, "Today", day-detail list — verbatim from current `calendar.tsx`. Clicking a row calls `onReservationClick(r)`; no `<Link>` for reservation details inside the component.
 
-### `src/features/dashboard/ReservationDashboard.tsx` (NEW)
+Hooks `isOptional` / `beforeNext` / `beforeEnter` are wired through but unused today (extensibility).
 
-Props:
+### Internal modules
+
+- `Wizard.tsx` — orchestrator. Owns `currentIndex`, `maxVisitedIndex`, **`isTransitioning`** flag. Handles scroll-into-view, focus, transitions.
+- `WizardProgress.tsx` — desktop: numbered titles with check / active / idle. Each item is a `<button aria-current="step">` for the active step. **Progressive navigation**: `<= maxVisitedIndex` enabled, `> maxVisitedIndex` `disabled` + `aria-disabled`. Mobile: "Step X of N · {title}" + `<Progress>` bar.
+- `WizardHeader.tsx` — `<h2 tabIndex={-1}>` focus target, description, optional icon, `aria-live="polite"`.
+- `WizardStep.tsx` — `AnimatePresence` 200 ms opacity + small x-slide. `prefers-reduced-motion` → opacity-only. `<Suspense>` wrapper so any step can become `React.lazy(...)` later without API change.
+- `WizardNavigation.tsx` — Cancel (always visible), Previous, Next/Submit. On Next: `setIsTransitioning(true)` → `form.trigger(validationFields)` → on failure `form.setFocus(firstInvalid)` and re-enable; on success run `beforeNext`, bump `maxVisitedIndex`, advance, then re-enable. Submit is similarly guarded against re-entry via `isTransitioning` + `submitDisabled`.
+- `wizard-context.ts` — `useWizard()` exposes `{ currentIndex, total, currentStep, goNext, goPrev, goTo, isFirst, isLast, maxVisitedIndex, isTransitioning }`.
+- `types.ts` — `WizardStepDef`, context shape, reserved `errorSummarySlot?` doc.
+- `index.ts` — barrel.
+
+### Double-action protection
+
+`isTransitioning` is true from the moment Next/Submit is clicked until the async validation + advance (or submit) settles. All navigation controls (Cancel, Previous, Next, Submit, and progress jump buttons) respect it and become disabled; the active button keeps its label and adds an `aria-busy="true"` state. Prevents duplicate advances, duplicate submits, and concurrent goTo.
+
+### Layout stability (pure CSS)
+
+`max-w-3xl mx-auto`. Step region uses `min-h-[28rem] md:min-h-[32rem]`. No runtime measurement.
+
+### Accessibility / keyboard
+
+- `<nav aria-label="Wizard steps">`; items have descriptive `aria-label`.
+- Step region: `<section role="region" aria-labelledby={headingId}>`.
+- Failed validation → focus first invalid via `form.setFocus`.
+- Successful advance → focus new `<h2>`.
+- Enter inside the form does NOT advance (root `onKeyDown` swallows except in `<textarea>` and `type="submit"`).
+- `focus-visible` via shadcn defaults.
+
+### Reserved extensions (not implemented)
+
+- `errorSummarySlot?: ReactNode` (documented only).
+- Cross-step validation via `beforeNext` or expanded `validationFields`.
+- Per-step `React.lazy(...)` (Suspense already in place).
+
+## Reservation domain layer
+
+### Shared form shape — derived, not duplicated
+
+`src/features/reservations/steps/types.ts`:
+
 ```ts
-type DashboardStat = { label: string; value: string; icon: ComponentType<{ className?: string }> };
+import type { UserReservationValues } from "@/features/user-reservation/schema";
+import type { InternalEventValues } from "@/features/internal-event/schema";
 
-type DashboardCta = { label: string; onClick: () => void };
+// Fields common to both forms — derived via intersection, NOT manually listed.
+export type ReservationFormShape = UserReservationValues & InternalEventValues;
+// (UserReservationValues is the superset that includes organizer fields; the
+// intersection narrows away anything not present in both.)
 
-type ReservationDashboardProps = {
-  reservations: ReservationDTO[];
-  title: string;
-  description: string;
-  stats: DashboardStat[];
-  cta?: DashboardCta;
-  emptyTitle: string;
-  emptyDescription: string;
-  emptyCta?: DashboardCta;
-  onReservationClick: (r: ReservationDTO) => void;
+// Organizer-aware variant for OrganizerStep only.
+export type ReservationFormShapeWithOrganizer = UserReservationValues;
+```
+
+If either schema gains a new field, the intersection updates automatically and TypeScript flags any step that needs to use it. No manual interface to drift.
+
+Step components use `useFormContext<ReservationFormShape>()`; `OrganizerStep` uses `useFormContext<ReservationFormShapeWithOrganizer>()`. Both wrappers pass their own RHF instance; structural compatibility is guaranteed by construction.
+
+### Room selection adapter — `src/features/reservations/room-selection.ts`
+
+**Sole owner** of every `setupOptionId` ↔ room rule. No other reservation file imports `SETUP_OPTIONS` going forward (existing imports in schema/submit stay untouched; out of scope).
+
+```ts
+export type RoomId = string;
+export type LayoutOption = { id: string; label: string; capacity: number | null };
+
+export function listRooms(): RoomId[];
+export function getRoomForSetupOption(id: string | undefined): RoomId | undefined;
+export function getLayoutsForRoom(room: RoomId): LayoutOption[];
+export function getDefaultLayoutForRoom(room: RoomId): LayoutOption;
+export function isLayoutCompatibleWithRoom(layoutId: string | undefined, room: RoomId): boolean;
+
+/**
+ * Single centralized rule for every Room → layout transition.
+ * - layout still valid → keep it
+ * - layout incompatible → return undefined (caller clears the field)
+ * - no prior layout → return undefined (caller leaves blank, user must pick)
+ *
+ * No component may reimplement this logic.
+ */
+export function resolveLayoutForRoomChange(
+  nextRoom: RoomId,
+  currentLayoutId: string | undefined,
+): string | undefined;
+```
+
+`RoomStep` calls only `resolveLayoutForRoomChange` on room change. `SetupStyleStep` calls only `getLayoutsForRoom` + `isLayoutCompatibleWithRoom`. Wizard remains room-agnostic.
+
+### Reservation form context — `src/features/reservations/reservation-form-context.ts`
+
+Tiny read-only bridge for shared UI state. **Not** a controller.
+
+```ts
+type ReservationFormContextValue = {
+  availability: UseAvailabilityResult;
+  hasConflict: boolean;
+  availabilityEnabled: boolean;
+  onRequestAvailability: () => void;
 };
 ```
-Owns Stat cards, filter tabs, search input, list rows, empty state. No role logic, no router imports, no `ROUTES`. Navigation is performed by handlers passed in by the wrapper.
 
-### Wrapper navigation pattern
+Consumed only by `RoomStep`. Wrappers continue to own mutations, navigation, dialogs.
 
-Each wrapper uses `useNavigate()` and `ROUTES` to build the callbacks:
+### Steps — `src/features/reservations/steps/`
 
-```ts
-const navigate = useNavigate();
-const goToDetail = (r: ReservationDTO) => navigate({
-  to: r.reservationType === "internal" ? "/internal/reservations/$id" : "/reservations/$id",
-  params: { id: r.id },
-});
-const goToNew = () => navigate({ to: ROUTES.newReservation });
-```
+Each step is presentational. External = 10 steps, internal = 9 (no Organizer).
 
-For admin the detail navigation uses the same mixed mapping because admins can drill into either kind.
+1. EventBasicsStep
+2. RoomStep — room picker (`listRooms()`), date/start/end; on room change writes `resolveLayoutForRoomChange(...)`; uses context to render `AvailabilityStatus` and call `onRequestAvailability`.
+3. CateringStep
+4. SpeakersStep
+5. AVStep
+6. EquipmentStep
+7. RegistrationStep
+8. ScheduleStep (Notes textarea included)
+9. SetupStyleStep — `getLayoutsForRoom(currentRoom)`; renders `SetupStylePreview` + capacity warning.
+10. OrganizerStep (external only)
 
-## Navigation configuration
+`_primitives.tsx` — `Section`, `Field`, `Toggle`, `Warning` lifted from current forms.
+`index.ts` — barrel.
 
-`src/config/routes.ts` — add:
-```ts
-adminDashboard: "/admin/dashboard",
-internalCalendar: "/internal/calendar",
-adminCalendar: "/admin/calendar",
-```
+## Wrappers — `UserReservationForm.tsx` / `InternalEventForm.tsx`
 
-`src/config/navigation/internal.ts` — `internal.calendar.to = ROUTES.internalCalendar`.
+Thin shells. Own all business logic byte-identical to today: RHF setup, `useAvailability`, conflict state, `RequestAvailabilityDialog`, `onSubmit` (authBypass, conflict re-guard, mutation, invalidate, toast, navigate), `onCancel`. Provide `ReservationFormContext`. Render `<Wizard ... />` + dialog (dialog outside the animated swap region).
 
-`src/config/navigation/admin.ts`
-- `admin.calendar.to = ROUTES.adminCalendar`
-- `admin.all-events.to = ROUTES.adminDashboard`
+## Behavioral parity (must remain true)
 
-`AppShell`, `useNavigation`, `useRoleActions`, `useNewRequestTarget`, `actionsByRole` — unchanged.
+Validation, availability query + enabled + `hasConflict`, conflict detection (client re-guard + server retry + dialog), request availability flow, schedule edits, setup style options + preview + capacity warning, organizer (external only), default values, submit payloads, query invalidation, toasts, navigation, cancellation, route guards.
 
-## Direct-URL access enforcement
+## Files
 
-`AuthGuard` already redirects when `roles` does not include any of the user's roles (sends to `/`). The new and existing routes apply guards:
+**Create — wizard (domain-agnostic)**
+- `src/components/forms/wizard/{Wizard,WizardProgress,WizardHeader,WizardStep,WizardNavigation}.tsx`
+- `src/components/forms/wizard/{wizard-context,types,index}.ts`
 
-| Route | Guard |
-|---|---|
-| `/dashboard` | `["user", "internal", "admin"]` (external page; internal/admin allowed via sidebar from admin) — but admin lands on `/admin/dashboard` via nav. To enforce role isolation: tighten to `["user"]` only? See note below. |
-| `/calendar` | `["user"]` |
-| `/internal/dashboard` | `["internal", "admin"]` (existing) |
-| `/internal/calendar` | `["internal", "admin"]` |
-| `/admin` | `["admin"]` (existing) |
-| `/admin/dashboard` | `["admin"]` |
-| `/admin/calendar` | `["admin"]` |
-| `/reservations/new` | `["user"]` |
-| `/internal/reservations/new` | `["internal", "admin"]` (existing, unchanged — out of scope) |
+**Create — reservation domain**
+- `src/features/reservations/room-selection.ts`
+- `src/features/reservations/reservation-form-context.ts`
+- `src/features/reservations/steps/{types,_primitives,index}.{ts,tsx}`
+- `src/features/reservations/steps/{EventBasicsStep,RoomStep,CateringStep,SpeakersStep,AVStep,EquipmentStep,RegistrationStep,ScheduleStep,SetupStyleStep,OrganizerStep}.tsx`
 
-Decision: keep `/dashboard` and `/calendar` open to all authenticated roles. Rationale: the previous behavior allowed any signed-in user to reach `/dashboard` (it just filtered data). The acceptance criteria require navigation isolation, not URL-blocking. The sidebar never offers an internal/admin user a link into `/dashboard` or `/calendar`, so direct-URL access is the only way in, and the data they would see is already restricted by RLS + the external-scoped query. If you want hard blocking, the guards can be tightened — flagging here so the choice is explicit before implementation.
+**Create — tests**
+- `src/components/forms/wizard/__tests__/Wizard.test.tsx`
+- `src/features/reservations/__tests__/room-selection.test.ts`
 
-Recommended explicit answer for this task: **tighten guards** so `/dashboard` and `/calendar` require `["user"]`, `/internal/*` requires `["internal","admin"]`, `/admin/*` requires `["admin"]`. This satisfies the "no role may access another role's workflow via direct URL" requirement. Admins still reach everything they need via `/admin/*`. If you prefer to keep them open for admin observability, say so and I will keep them at the broader role set.
+**Modify (shrink to wrappers)**
+- `src/features/user-reservation/UserReservationForm.tsx`
+- `src/features/internal-event/InternalEventForm.tsx`
 
-## Files to create
-- `src/features/calendar/CalendarView.tsx`
-- `src/features/dashboard/ReservationDashboard.tsx`
-- `src/routes/admin.dashboard.tsx`
-- `src/routes/internal.calendar.tsx`
-- `src/routes/admin.calendar.tsx`
+**Maybe install**
+- `framer-motion` (if not already)
+- `@testing-library/react` + `@testing-library/user-event` + `vitest` (only if not already installed)
 
-## Files to modify
-- `src/features/admin/reservations.functions.ts` — split list fn into three scoped fns
-- `src/features/reservations/queries.ts` — `reservationKeys` + three scoped query options
-- `src/routes/dashboard.tsx` — thin wrapper (external)
-- `src/routes/internal.dashboard.tsx` — thin wrapper (internal)
-- `src/routes/calendar.tsx` — thin wrapper (external)
-- `src/routes/admin.tsx` — use `allReservationsQueryOptions`
-- `src/config/routes.ts` — three new constants
-- `src/config/navigation/internal.ts`
-- `src/config/navigation/admin.ts`
+**Untouched**
+- Schemas, server functions, queries, `useAvailability`, RPCs, `RequestAvailabilityDialog`, `SetupStylePreview`, `reservation-options.ts`, routes, auth guards, navigation config, RLS, design tokens.
+
+## Verification
+
+### Component tests — generic Wizard only (no reservation imports)
+
+A tiny throwaway form fixture inside the test file provides 3 dummy steps. Assertions:
+
+1. Progress updates as user advances (active marker, completed marker).
+2. Cannot advance when validation fails (form stays on same step; invalid field receives focus).
+3. Previously visited steps remain accessible (clicking a past step in the progress nav jumps back).
+4. Future steps remain disabled (`aria-disabled="true"`; click is a no-op).
+5. `onCancel` callback fires on Cancel click.
+6. Focus moves to the new step heading after a successful advance.
+7. Rapid double-click on Next results in a single advance (transition flag works).
+8. `onSubmit` fires exactly once on Submit double-click.
+
+### Adapter tests — `room-selection.ts`
+
+- `resolveLayoutForRoomChange` keeps compatible layout.
+- Clears incompatible layout (returns undefined).
+- Returns undefined when prior layout is undefined.
+- `getLayoutsForRoom` returns only layouts belonging to that room.
+
+### Playwright (end-to-end on the live preview)
+
+1. Walk all 10 external steps → submit → identical payload + navigation to detail page.
+2. Walk all 9 internal steps → submit.
+3. Back-navigate to a completed step, edit, return — value persists.
+4. Skip-ahead blocked.
+5. Change room after picking a setup style:
+   - Pick Auditorium A → Theater layout; advance; go back to Room; switch to Auditorium B → confirm `setupOptionId` cleared (no compatible match) and Setup Style step requires re-selection.
+   - Pick a room with a compatible existing layout → confirm kept.
+6. Availability badge re-queries on room change.
+7. Submit while conflict exists → `RequestAvailabilityDialog` opens; no submission.
+8. Cancel from step 8 → navigates to role's dashboard; no submit.
+9. Rapid prev/next clicking — no state corruption.
+10. Enter key in inputs does not advance.
+11. Validation failure → focus on first invalid field.
+
+### Static checks
+
+- No `@/features/*` imports inside `src/components/forms/wizard/**`.
+- `setupOptionId` referenced only in `room-selection.ts`, `RoomStep`, `SetupStyleStep`, schema, submit functions.
+- `SETUP_OPTIONS` imported only by `room-selection.ts` (within reservation steps/form scope).
 
 ## Out of scope
-Auth flows, RLS policies, reservation forms, server-function security model, AppShell layout/spacing/icons/typography, sidebar appearance, mobile bar, color tokens, design tokens, reservation business logic.
 
-## Acceptance after implementation
-- External (`user`): `/dashboard` (external scope) · `/calendar` (external scope) · `/reservations/new`. Direct hits on `/internal/*` or `/admin/*` redirect to `/`.
-- Internal: `/internal/dashboard` · `/internal/calendar` · `/internal/reservations/new`. Direct hits on `/admin/*` and `/dashboard`/`/calendar` redirect to `/`.
-- Admin: `/admin` · `/admin/dashboard` · `/admin/calendar`. No "New request" CTA anywhere.
-- Server returns only role-relevant rows; RLS continues to enforce authorization.
-- `CalendarView` and `ReservationDashboard` contain zero references to `useAuth`, `useNavRole`, `ROUTES`, or `Link`. All navigation handled by wrappers.
-- Query keys structured as `["reservations", "list", <scope>]` and `["reservations", "detail", <id>]`.
-
-Please confirm the guard-tightening recommendation (or override) before I proceed.
+Schema changes, payload changes, RPC changes, route changes, design-token changes, partial-draft persistence, deep-linking to steps, error-summary implementation (slot reserved), actual lazy loading (architecture-ready only).
