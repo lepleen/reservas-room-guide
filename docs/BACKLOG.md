@@ -40,8 +40,7 @@ Critérios de aceitação
 
 Status
 
-Not Started
-
+In Progress
 ---
 
 ### ⬜ Task 3 — Separate Sidebar by Role
