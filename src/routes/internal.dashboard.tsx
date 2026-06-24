@@ -2,8 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, CalendarClock, Users } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
-import { AuthGuard } from "@/components/AuthGuard";
+import { AuthenticatedLayout } from "@/components/AuthenticatedLayout";
 import { ReservationDashboard } from "@/features/dashboard/ReservationDashboard";
 import { internalReservationsQueryOptions } from "@/features/reservations/queries";
 import type { ReservationDTO } from "@/features/reservations/types";
@@ -17,9 +16,9 @@ export const Route = createFileRoute("/internal/dashboard")({
     ],
   }),
   component: () => (
-    <AuthGuard roles={["internal", "admin"]}>
+    <AuthenticatedLayout roles={["internal", "admin"]}>
       <InternalDashboardPage />
-    </AuthGuard>
+    </AuthenticatedLayout>
   ),
 });
 
@@ -43,23 +42,21 @@ function InternalDashboardPage() {
   const goToNew = () => navigate({ to: ROUTES.newInternalReservation });
 
   return (
-    <AppShell>
-      <ReservationDashboard
-        reservations={reservations}
-        title="Your Internal events"
-        description="Reservations submitted by the internal team."
-        stats={stats}
-        cta={{ label: "New internal request", onClick: goToNew }}
-        emptyTitle="No internal events yet"
-        emptyDescription="Submit your first internal reservation."
-        emptyCta={{ label: "New internal request", onClick: goToNew }}
-        onReservationClick={goToDetail}
-        reservationBadge={() => (
-          <span className="text-[10px] uppercase tracking-wider rounded bg-accent text-accent-foreground px-1.5 py-0.5">
-            Internal
-          </span>
-        )}
-      />
-    </AppShell>
+    <ReservationDashboard
+      reservations={reservations}
+      title="Your Internal events"
+      description="Reservations submitted by the internal team."
+      stats={stats}
+      cta={{ label: "New internal request", onClick: goToNew }}
+      emptyTitle="No internal events yet"
+      emptyDescription="Submit your first internal reservation."
+      emptyCta={{ label: "New internal request", onClick: goToNew }}
+      onReservationClick={goToDetail}
+      reservationBadge={() => (
+        <span className="text-[10px] uppercase tracking-wider rounded bg-accent text-accent-foreground px-1.5 py-0.5">
+          Internal
+        </span>
+      )}
+    />
   );
 }

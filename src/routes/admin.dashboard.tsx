@@ -2,8 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, CalendarClock, Users } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
-import { AuthGuard } from "@/components/AuthGuard";
+import { AuthenticatedLayout } from "@/components/AuthenticatedLayout";
 import { ReservationDashboard } from "@/features/dashboard/ReservationDashboard";
 import { allReservationsQueryOptions } from "@/features/reservations/queries";
 import type { ReservationDTO } from "@/features/reservations/types";
@@ -17,9 +16,9 @@ export const Route = createFileRoute("/admin/dashboard")({
     ],
   }),
   component: () => (
-    <AuthGuard roles={["admin"]}>
+    <AuthenticatedLayout roles={["admin"]}>
       <AdminDashboardPage />
-    </AuthGuard>
+    </AuthenticatedLayout>
   ),
 });
 
@@ -45,28 +44,26 @@ function AdminDashboardPage() {
     });
 
   return (
-    <AppShell>
-      <ReservationDashboard
-        reservations={reservations}
-        title="All events"
-        description="Every reservation across the organisation."
-        stats={stats}
-        emptyTitle="No events yet"
-        emptyDescription="Approved and pending reservations will appear here."
-        onReservationClick={goToDetail}
-        reservationBadge={(r) => (
-          <span
-            className={cn(
-              "text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5",
-              r.reservationType === "internal"
-                ? "bg-accent text-accent-foreground"
-                : "bg-secondary text-foreground",
-            )}
-          >
-            {r.reservationType === "internal" ? "Internal" : "External"}
-          </span>
-        )}
-      />
-    </AppShell>
+    <ReservationDashboard
+      reservations={reservations}
+      title="All events"
+      description="Every reservation across the organisation."
+      stats={stats}
+      emptyTitle="No events yet"
+      emptyDescription="Approved and pending reservations will appear here."
+      onReservationClick={goToDetail}
+      reservationBadge={(r) => (
+        <span
+          className={cn(
+            "text-[10px] uppercase tracking-wider rounded px-1.5 py-0.5",
+            r.reservationType === "internal"
+              ? "bg-accent text-accent-foreground"
+              : "bg-secondary text-foreground",
+          )}
+        >
+          {r.reservationType === "internal" ? "Internal" : "External"}
+        </span>
+      )}
+    />
   );
 }

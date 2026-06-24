@@ -1,18 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, CalendarClock, MapPin, Users } from "lucide-react";
-import { AppShell, PageHeader } from "@/components/AppShell";
+import { PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/StatusBadge";
-import { AuthGuard } from "@/components/AuthGuard";
+import { AuthenticatedLayout } from "@/components/AuthenticatedLayout";
 import { reservationQueryOptions } from "@/features/reservations/queries";
 import { getSetupOption } from "@/lib/reservation-options";
 
 export const Route = createFileRoute("/internal/reservations/$id")({
   component: () => (
-    <AuthGuard roles={["internal", "admin"]}>
+    <AuthenticatedLayout roles={["internal", "admin"]}>
       <InternalReservationDetailPage />
-    </AuthGuard>
+    </AuthenticatedLayout>
   ),
 });
 
@@ -21,16 +21,12 @@ function InternalReservationDetailPage() {
   const { data: r, isLoading, error } = useQuery(reservationQueryOptions(id));
 
   if (isLoading) {
-    return (
-      <AppShell>
-        <PageHeader title="Loading…" />
-      </AppShell>
-    );
+    return <PageHeader title="Loading…" />;
   }
 
   if (error || !r) {
     return (
-      <AppShell>
+      <>
         <PageHeader
           title="Reservation not found"
           description={(error as Error | undefined)?.message ?? "It may have been removed."}
@@ -40,14 +36,14 @@ function InternalReservationDetailPage() {
             <ArrowLeft className="h-4 w-4" /> Back to internal dashboard
           </Link>
         </Button>
-      </AppShell>
+      </>
     );
   }
 
   const setup = getSetupOption(r.setupOptionId);
 
   return (
-    <AppShell>
+    <>
       <Link
         to="/internal/dashboard"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4"
@@ -125,7 +121,7 @@ function InternalReservationDetailPage() {
           </Panel>
         )}
       </div>
-    </AppShell>
+    </>
   );
 }
 
