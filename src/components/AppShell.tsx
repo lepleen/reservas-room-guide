@@ -95,14 +95,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <span className="text-sm font-semibold">Roomr</span>
         </Link>
-        {primary ? (
-          <Link
-            to={primary.to}
-            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground"
-          >
-            <primary.icon className="h-3.5 w-3.5" /> {primary.label}
-          </Link>
-        ) : null}
+        {primary ? <PrimaryAction action={primary} /> : null}
       </div>
 
       <main className="flex-1 md:pt-0 pt-14 min-w-0">
