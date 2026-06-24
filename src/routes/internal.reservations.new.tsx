@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell, PageHeader } from "@/components/AppShell";
-import { AuthGuard } from "@/components/AuthGuard";
+import { PageHeader } from "@/components/AppShell";
+import { AuthenticatedLayout } from "@/components/AuthenticatedLayout";
 import { InternalEventForm } from "@/features/internal-event/InternalEventForm";
 
 export const Route = createFileRoute("/internal/reservations/new")({
@@ -11,20 +11,20 @@ export const Route = createFileRoute("/internal/reservations/new")({
     ],
   }),
   component: () => (
-    <AuthGuard roles={["internal", "admin"]}>
+    <AuthenticatedLayout roles={["internal", "admin"]}>
       <NewInternalReservationPage />
-    </AuthGuard>
+    </AuthenticatedLayout>
   ),
 });
 
 function NewInternalReservationPage() {
   return (
-    <AppShell>
+    <>
       <PageHeader
         title="New internal reservation"
         description="Submit a room request on behalf of the internal team."
       />
       <InternalEventForm />
-    </AppShell>
+    </>
   );
 }

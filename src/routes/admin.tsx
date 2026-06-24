@@ -11,7 +11,7 @@ import {
   ShieldCheck,
   XCircle,
 } from "lucide-react";
-import { AppShell, PageHeader } from "@/components/AppShell";
+import { PageHeader } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -27,7 +27,7 @@ import { updateReservationStatus } from "@/features/admin/reservations.functions
 import type { ReservationDTO, ReservationStatus } from "@/features/reservations/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { AuthGuard } from "@/components/AuthGuard";
+import { AuthenticatedLayout } from "@/components/AuthenticatedLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 
 export const Route = createFileRoute("/admin")({
@@ -38,9 +38,9 @@ export const Route = createFileRoute("/admin")({
     ],
   }),
   component: () => (
-    <AuthGuard roles={["admin"]}>
+    <AuthenticatedLayout roles={["admin"]}>
       <AdminPage />
-    </AuthGuard>
+    </AuthenticatedLayout>
   ),
 });
 
@@ -117,7 +117,7 @@ function AdminPage() {
   };
 
   return (
-    <AppShell>
+    <>
       <PageHeader
         title="Review requests"
         description="Approve, confirm, reject or cancel reservation requests."
@@ -313,6 +313,6 @@ function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AppShell>
+    </>
   );
 }

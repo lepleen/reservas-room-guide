@@ -2,8 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, CalendarClock, Users } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
-import { AuthGuard } from "@/components/AuthGuard";
+import { AuthenticatedLayout } from "@/components/AuthenticatedLayout";
 import { ReservationDashboard } from "@/features/dashboard/ReservationDashboard";
 import { externalReservationsQueryOptions } from "@/features/reservations/queries";
 import type { ReservationDTO } from "@/features/reservations/types";
@@ -17,9 +16,9 @@ export const Route = createFileRoute("/dashboard")({
     ],
   }),
   component: () => (
-    <AuthGuard roles={["external"]}>
+    <AuthenticatedLayout roles={["external"]}>
       <DashboardPage />
-    </AuthGuard>
+    </AuthenticatedLayout>
   ),
 });
 
@@ -43,18 +42,16 @@ function DashboardPage() {
   const goToNew = () => navigate({ to: ROUTES.newReservation });
 
   return (
-    <AppShell>
-      <ReservationDashboard
-        reservations={reservations}
-        title="Your external events"
-        description="A calm overview of everything you have planned."
-        stats={stats}
-        cta={{ label: "New external reservation", onClick: goToNew }}
-        emptyTitle="No events here yet"
-        emptyDescription="Start by planning your first reservation."
-        emptyCta={{ label: "New external reservation", onClick: goToNew }}
-        onReservationClick={goToDetail}
-      />
-    </AppShell>
+    <ReservationDashboard
+      reservations={reservations}
+      title="Your external events"
+      description="A calm overview of everything you have planned."
+      stats={stats}
+      cta={{ label: "New external reservation", onClick: goToNew }}
+      emptyTitle="No events here yet"
+      emptyDescription="Start by planning your first reservation."
+      emptyCta={{ label: "New external reservation", onClick: goToNew }}
+      onReservationClick={goToDetail}
+    />
   );
 }
