@@ -3,5 +3,11 @@ import { ROUTES } from "@/config/routes";
 import type { RoleActions } from "@/config/navigation/types";
 
 export const adminActions: RoleActions = {
-  primary: { id: "admin.review", label: "Review", icon: ShieldCheck, to: ROUTES.admin },
+  primary: {
+    type: "route",
+    id: "admin.review",
+    label: "Review",
+    icon: ShieldCheck,
+    to: ROUTES.admin,
+  },
 };
