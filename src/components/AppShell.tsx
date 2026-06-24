@@ -3,6 +3,7 @@ import { CalendarDays, LogOut, Sparkles } from "lucide-react";
 import { type ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavRole, useNavigation, useRoleActions } from "@/hooks/useNavigation";
+import { PrimaryAction } from "@/components/navigation/PrimaryAction";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: ReactNode }) {
