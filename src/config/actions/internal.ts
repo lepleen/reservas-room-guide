@@ -3,5 +3,11 @@ import { ROUTES } from "@/config/routes";
 import type { RoleActions } from "@/config/navigation/types";
 
 export const internalActions: RoleActions = {
-  primary: { id: "internal.new-request", label: "New", icon: Plus, to: ROUTES.newInternalReservation },
+  primary: {
+    type: "route",
+    id: "internal.new-request",
+    label: "New",
+    icon: Plus,
+    to: ROUTES.newInternalReservation,
+  },
 };

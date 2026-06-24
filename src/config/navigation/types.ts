@@ -15,12 +15,23 @@ export type RoleNavigation = {
   items: NavItem[];
 };
 
-export type ActionItem = {
+type ActionBase = {
   id: string;
   label: string;
   icon: LucideIcon;
+};
+
+export type RouteActionItem = ActionBase & {
+  type: "route";
   to: AppRoute;
 };
+
+export type CustomActionItem = ActionBase & {
+  type: "custom";
+  actionId: string;
+};
+
+export type ActionItem = RouteActionItem | CustomActionItem;
 
 export type RoleActions = {
   primary?: ActionItem;

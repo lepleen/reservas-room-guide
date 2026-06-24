@@ -1,41 +1,95 @@
-## Task 3A — Status: Already Implemented
+## Task 4A — Extend Primary Actions (revised)
 
-After exploring the codebase, the navigation configuration is **already separated by role** exactly as Task 3A requires. No refactor is needed.
+Architectural refactor only. Zero behavioral or visual change. Config stays declarative; rendering lives in a dedicated component.
 
-### Current architecture
-
-```text
-src/config/navigation/
-├── types.ts        NavRole, NavItem, RoleNavigation, RoleActions, RoleConfig
-├── external.ts     externalNavigation  (panelLabel + items)
-├── internal.ts     internalNavigation
-├── admin.ts        adminNavigation
-└── index.ts        navigationByRole = { admin, internal, external }
-
-src/config/actions/
-├── external.ts, internal.ts, admin.ts
-└── index.ts        actionsByRole = { admin, internal, external }
-```
-
-Consumption in `AppShell` (via `src/hooks/useNavigation.ts`):
+### 1. `src/config/navigation/types.ts` — discriminated union
 
 ```ts
-const navRole = useNavRole();              // maps auth roles → NavRole
-const { panelLabel, items } = useNavigation(navRole);
-const { primary } = useRoleActions(navRole);
+type ActionBase = {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+export type RouteActionItem = ActionBase & {
+  type: "route";
+  to: AppRoute;
+};
+
+export type CustomActionItem = ActionBase & {
+  type: "custom";
+  actionId: string;        // declarative identifier, resolved by the renderer
+};
+
+export type ActionItem = RouteActionItem | CustomActionItem;
+
+export type RoleActions = { primary?: ActionItem };
 ```
 
-`useNavRole` resolves the authenticated user's role with the existing precedence (`admin` → `internal` → `external`), unauthenticated falls through to `external` to preserve guest shell.
+No callbacks in config. No optional `to` — the discriminator forces exhaustive handling.
 
-### Acceptance criteria — already met
+### 2. `src/config/actions/{external,internal,admin}.ts` — tag existing primaries
 
-- ✅ Each role has its own navigation file (`external.ts`, `internal.ts`, `admin.ts`).
-- ✅ `AppShell` consumes the correct config via `useNavRole` + `useNavigation`.
-- ✅ No duplicated navigation definitions — each role's items live in one file.
-- ✅ No visual or functional changes possible because no code change is proposed.
+```ts
+externalActions.primary = { type: "route", id: "external.new-request", label: "New", icon: Plus, to: ROUTES.newReservation };
+internalActions.primary = { type: "route", id: "internal.new-request", label: "New", icon: Plus, to: ROUTES.newInternalReservation };
+adminActions.primary    = { type: "route", id: "admin.review",        label: "Review", icon: ShieldCheck, to: ROUTES.admin };
+```
 
-### Proposed action
+Labels, icons, and routes unchanged.
 
-**Do nothing.** Confirm to the user that Task 3A is already satisfied by the existing structure introduced in earlier work, and list the files that fulfill each requirement (above).
+### 3. New file `src/components/navigation/PrimaryAction.tsx` — owns action rendering
 
-If you'd prefer a different organization (e.g. collapse `navigation/` and `actions/` into a single `roles/{role}.ts` per-role file exporting `{ navigation, actions }` using the existing `RoleConfig` umbrella type), say the word and I'll plan that as a follow-up — but it is not required by Task 3A.
+```tsx
+import { Link } from "@tanstack/react-router";
+import type { ActionItem } from "@/config/navigation/types";
+
+const CLASS = "inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground";
+
+export function PrimaryAction({ action }: { action: ActionItem }) {
+  const Icon = action.icon;
+  switch (action.type) {
+    case "route":
+      return (
+        <Link to={action.to} className={CLASS}>
+          <Icon className="h-3.5 w-3.5" /> {action.label}
+        </Link>
+      );
+    case "custom":
+      // Placeholder for future custom handlers keyed by action.actionId.
+      // Renders identical markup; no handler is wired today (no custom
+      // actions are configured), so behavior is unchanged.
+      return (
+        <button type="button" className={CLASS} data-action-id={action.actionId}>
+          <Icon className="h-3.5 w-3.5" /> {action.label}
+        </button>
+      );
+  }
+}
+```
+
+Exhaustive switch keeps TS fully typed.
+
+### 4. `src/components/AppShell.tsx` — delegate to PrimaryAction
+
+Replace the inline mobile-top-bar `<Link>` block with:
+
+```tsx
+{primary ? <PrimaryAction action={primary} /> : null}
+```
+
+No layout, class, or copy changes. Identical DOM for current route actions.
+
+### Files modified
+- `src/config/navigation/types.ts` — discriminated `ActionItem` union (`route` | `custom`).
+- `src/config/actions/external.ts` — tag primary with `type: "route"`.
+- `src/config/actions/internal.ts` — tag primary with `type: "route"`.
+- `src/config/actions/admin.ts` — tag primary with `type: "route"`.
+- `src/components/navigation/PrimaryAction.tsx` — **new**; owns action rendering for both variants.
+- `src/components/AppShell.tsx` — render `<PrimaryAction action={primary} />`; remove inline link markup.
+
+### Acceptance
+- All current primaries remain route actions → identical navigation, label, icon, classes.
+- `"custom"` variant is typed and renderable but unused; config stays declarative (no callbacks stored).
+- AppShell stays focused on layout; PrimaryAction owns rendering.
+- Exhaustive `switch` on `action.type`; no optional-prop branching.
