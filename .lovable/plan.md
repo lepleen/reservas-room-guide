@@ -1,95 +1,94 @@
-## Task 4A — Extend Primary Actions (revised)
+## Task 4B — Admin "New Request" Custom Action (revised)
 
-Architectural refactor only. Zero behavioral or visual change. Config stays declarative; rendering lives in a dedicated component.
+Uses the custom-action architecture from Task 4A. External / internal unchanged.
 
-### 1. `src/config/navigation/types.ts` — discriminated union
-
-```ts
-type ActionBase = {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-};
-
-export type RouteActionItem = ActionBase & {
-  type: "route";
-  to: AppRoute;
-};
-
-export type CustomActionItem = ActionBase & {
-  type: "custom";
-  actionId: string;        // declarative identifier, resolved by the renderer
-};
-
-export type ActionItem = RouteActionItem | CustomActionItem;
-
-export type RoleActions = { primary?: ActionItem };
-```
-
-No callbacks in config. No optional `to` — the discriminator forces exhaustive handling.
-
-### 2. `src/config/actions/{external,internal,admin}.ts` — tag existing primaries
+### 1. `src/config/actions/admin.ts` — declarative custom action
 
 ```ts
-externalActions.primary = { type: "route", id: "external.new-request", label: "New", icon: Plus, to: ROUTES.newReservation };
-internalActions.primary = { type: "route", id: "internal.new-request", label: "New", icon: Plus, to: ROUTES.newInternalReservation };
-adminActions.primary    = { type: "route", id: "admin.review",        label: "Review", icon: ShieldCheck, to: ROUTES.admin };
+import { Plus } from "lucide-react";
+import type { RoleActions } from "@/config/navigation/types";
+
+export const adminActions: RoleActions = {
+  primary: {
+    type: "custom",
+    id: "admin.new-request",
+    label: "New Request",
+    icon: Plus,
+    actionId: "admin.new-request",
+  },
+};
 ```
 
-Labels, icons, and routes unchanged.
+No navigation logic in config — only the identifier.
 
-### 3. New file `src/components/navigation/PrimaryAction.tsx` — owns action rendering
+### 2. New file `src/components/navigation/customActionRegistry.tsx`
+
+A declarative `actionId → renderer` map. Keeps `PrimaryAction` agnostic and lets future custom actions be added without touching the renderer.
 
 ```tsx
+import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import type { ActionItem } from "@/config/navigation/types";
+import { Building2, User } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { ROUTES } from "@/config/routes";
+import type { CustomActionItem } from "@/config/navigation/types";
 
-const CLASS = "inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground";
+type CustomActionRenderer = (action: CustomActionItem) => ReactNode;
 
-export function PrimaryAction({ action }: { action: ActionItem }) {
-  const Icon = action.icon;
-  switch (action.type) {
-    case "route":
-      return (
-        <Link to={action.to} className={CLASS}>
-          <Icon className="h-3.5 w-3.5" /> {action.label}
-        </Link>
-      );
-    case "custom":
-      // Placeholder for future custom handlers keyed by action.actionId.
-      // Renders identical markup; no handler is wired today (no custom
-      // actions are configured), so behavior is unchanged.
-      return (
-        <button type="button" className={CLASS} data-action-id={action.actionId}>
-          <Icon className="h-3.5 w-3.5" /> {action.label}
-        </button>
-      );
-  }
+const PRIMARY_CLASS =
+  "inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground";
+
+const renderers: Record<string, CustomActionRenderer> = {
+  "admin.new-request": (action) => {
+    const Icon = action.icon;
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" className={PRIMARY_CLASS}>
+            <Icon className="h-3.5 w-3.5" /> {action.label}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <Link to={ROUTES.newReservation}>
+              <User className="mr-2 h-4 w-4" /> External Reservation
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to={ROUTES.newInternalReservation}>
+              <Building2 className="mr-2 h-4 w-4" /> Internal Reservation
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  },
+};
+
+export function renderCustomAction(action: CustomActionItem): ReactNode {
+  const renderer = renderers[action.actionId];
+  return renderer ? renderer(action) : null;
 }
 ```
 
-Exhaustive switch keeps TS fully typed.
-
-### 4. `src/components/AppShell.tsx` — delegate to PrimaryAction
-
-Replace the inline mobile-top-bar `<Link>` block with:
+### 3. `src/components/navigation/PrimaryAction.tsx` — delegate custom branch
 
 ```tsx
-{primary ? <PrimaryAction action={primary} /> : null}
+case "custom":
+  return renderCustomAction(action);
 ```
 
-No layout, class, or copy changes. Identical DOM for current route actions.
+Route branch unchanged.
 
 ### Files modified
-- `src/config/navigation/types.ts` — discriminated `ActionItem` union (`route` | `custom`).
-- `src/config/actions/external.ts` — tag primary with `type: "route"`.
-- `src/config/actions/internal.ts` — tag primary with `type: "route"`.
-- `src/config/actions/admin.ts` — tag primary with `type: "route"`.
-- `src/components/navigation/PrimaryAction.tsx` — **new**; owns action rendering for both variants.
-- `src/components/AppShell.tsx` — render `<PrimaryAction action={primary} />`; remove inline link markup.
+- `src/config/actions/admin.ts` — primary becomes declarative custom action (`actionId: "admin.new-request"`, label `"New Request"`, icon `Plus`). Review remains reachable via the existing `admin.review` nav item in `src/config/navigation/admin.ts` (unchanged).
+- `src/components/navigation/customActionRegistry.tsx` — **new**; `actionId → renderer` map containing the admin dropdown.
+- `src/components/navigation/PrimaryAction.tsx` — `"custom"` branch delegates to `renderCustomAction(action)`.
 
 ### Acceptance
-- All current primaries remain route actions → identical navigation, label, icon, classes.
-- `"custom"` variant is typed and renderable but unused; config stays declarative (no callbacks stored).
-- AppShell stays focused on layout; PrimaryAction owns rendering.
-- Exhaustive `switch` on `action.type`; no optional-prop branching.
+- External: unchanged.
+- Internal: unchanged.
+- Admin: primary shows "New Request" → dropdown with **External Reservation** (`ROUTES.newReservation`) and **Internal Reservation** (`ROUTES.newInternalReservation`).
+- Config stays declarative; navigation logic lives in the renderer registry.
