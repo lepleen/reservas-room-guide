@@ -1,13 +1,12 @@
-import { ShieldCheck } from "lucide-react";
-import { ROUTES } from "@/config/routes";
+import { Plus } from "lucide-react";
 import type { RoleActions } from "@/config/navigation/types";
 
 export const adminActions: RoleActions = {
   primary: {
-    type: "route",
-    id: "admin.review",
-    label: "Review",
-    icon: ShieldCheck,
-    to: ROUTES.admin,
+    type: "custom",
+    id: "admin.new-request",
+    label: "New Request",
+    icon: Plus,
+    actionId: "admin.new-request",
   },
 };
